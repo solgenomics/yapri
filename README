@@ -1,0 +1,66 @@
+
+  YapRI, is "Yet another perl R interface" developed initially to work with 
+different blocks of commands. 
+
+  It run the commands esentially as: 
+  R [options] --file=inputcommandfile > outputresultfile
+
+ So the YapRI::Base module, create files, put them in a temp dir by default, 
+open these files, write the R commands to them, execute the files and 
+store all of them as variables in this object.
+
+  Here a synopsis of how works:
+
+  use YapRI::Base;
+
+  ## WORKING WITH THE DEFAULT MODE:
+
+  my $rih = YapRI::Base->new();
+  $rih->add_command('bmp(filename="myfile.bmp", width=600, height=800)');
+  $rih->add_command('dev.list()');
+  $rih->add_command('plot(c(1, 5, 10), type = "l")');
+  $rih->add_command('dev.off()');
+ 
+  $rih->run_command();
+  
+  my $result_file = $rih->get_resultfiles('default');
+
+
+
+  ## WORKING WITH COMMAND BLOCKS:
+
+  my $rih = YapRI::Base->new();
+
+  ## Create a file-block_1
+
+  $rih->add_cmdfile('BLOCK1');
+  $rih->add_command('x <- c(10, 9, 8, 5)', 'BLOCK1');
+  $rih->add_command('z <- c(12, 8, 8, 4)', 'BLOCK1');
+  $rih->add_command('x + z', 'BLOCK1')
+  
+  ## Create a file-block_2
+
+  $rih->add_cmdfile('BLOCK2');   
+  $rih->add_command('bmp(filename="myfile.bmp", width=600, height=800)', 
+                    'BLOCK2');
+  $rih->add_command('dev.list()', 'BLOCK2');
+  $rih->add_command('plot(c(1, 5, 10), type = "l")', 'BLOCK2');
+  
+  ## Run each block
+
+  $rih->run_command({ alias => 'BLOCK1' });
+  $rih->run_command({ alias => 'BLOCK2' });
+
+  ## Get the results
+
+  my $resultfile1 = $rih->get_resultfiles('BLOCK1');
+  my $resultfile2 = $rih->get_resultfiles('BLOCK2'); 
+
+
+  From here there is a plan to create other modules that interact with this 
+module to do more easy an intuitive its use. For example, create the module
+YapRI::Graph, with the following functionality:
+
+  my $rGraph = YapRI::Graph->new('bmp');
+  $rGraph->plot($data);
+
