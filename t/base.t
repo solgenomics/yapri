@@ -31,7 +31,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 79;
+use Test::More tests => 91;
 use Test::Exception;
 use Test::Warn;
 
@@ -567,6 +567,121 @@ throws_ok  { $rih2->run_command() } qr/SYSTEM FAILS running R/,
 
 $rih2->set_r_opts_pass('--slave --vanilla');
 
+
+
+##################
+## BLOCKS TEST ###
+##################
+
+## TEST 80 to 91
+
+## 1) Create a new object with the default arguments
+
+my $rih3 = YapRI::Base->new();
+push @rih_objs, $rih3;
+
+## 2) Create a new block and add a couple of commands
+
+$rih3->create_block('block1');
+$rih3->add_command('x <- rnorm(50)', 'block1');
+$rih3->add_command('y <- rnorm(x)', 'block1');
+$rih3->add_command('y * x', 'block1');
+$rih3->run_block('block1');
+
+my @results3 = ();
+my $resfile3 = $rih3->get_resultfiles('block1');
+open my $resfh3, '<', $resfile3;
+while(<$resfh3>) {
+    chomp($_);
+    my @data = split(/\s+/, $_);
+    foreach my $data (@data) {
+	if ($data !~ m/\[\d+\]/ && $data =~ m/\d+/) {
+	    push @results3, $data;
+	}
+    }
+}
+
+is(scalar(@results3), 50, 
+    "testing create_block/run_block with basic usage, checking results")
+    or diag("Looks like this has failed");
+
+throws_ok  { $rih3->create_block() } qr/ERROR: No new name or alias/, 
+    'TESTING DIE ERROR when no arg. is used with create_block() function';
+
+throws_ok  { $rih3->run_block() } qr/ERROR: No new name or alias/, 
+    'TESTING DIE ERROR when no arg. is used with run_block() function';
+
+
+$rih3->create_block('block2');
+$rih3->add_command('x <- rnorm(25, mean = 5)', 'block2');
+$rih3->add_command('y <- rnorm(x)', 'block2');
+$rih3->add_command('x * y', 'block2');
+$rih3->run_block('block2');
+
+my @results4 = ();
+my $resfile4 = $rih3->get_resultfiles('block2');
+open my $resfh4, '<', $resfile4;
+while(<$resfh4>) {
+    chomp($_);
+    my @data = split(/\s+/, $_);
+    foreach my $data (@data) {
+	if ($data !~ m/\[\d+\]/ && $data =~ m/\d+/) {
+	    push @results4, $data;
+	}
+    }
+}
+
+is(scalar(@results4), 25, 
+    "testing another create_block/run_block with basic usage, checking results")
+    or diag("Looks like this has failed");
+
+## Now as example we want to create a graph for both of them
+
+my @blocks = ('block1', 'block2');
+my %graph_files = ();
+
+my $cmddir3 = $rih3->get_cmddir();
+
+foreach my $bl (@blocks) {
+    my $filebmp = $cmddir3 . '/graph_for' . $bl;
+    my $graph_alias = 'graph_' . $bl;
+ 
+    $rih3->create_block($graph_alias);
+    $rih3->add_command('bmp(file="' . $filebmp . '")', $graph_alias);
+    $rih3->add_command('plot(x, y)', $graph_alias);
+    $rih3->add_command('dev.off()', $graph_alias);
+   
+    ## before run it, it will supply different data
+    my $combblock = $graph_alias . '_combine';
+    $rih3->combine_blocks([$bl, $graph_alias], $combblock);
+    $rih3->run_block($combblock);
+
+    ## Check different images, with the default size (480x480)
+
+    my ($bimg_x, $bimg_y) = Image::Size::imgsize($filebmp);
+
+    is($bimg_x, 480, 
+       "testing combine_blocks, checking image size (width) for $combblock")
+	or diag("Looks like this has failed");
+
+    is($bimg_y, 480, 
+       "testing combine_blocks, checking image size (heigth) for $combblock")
+	or diag("Looks like this has failed");
+}
+
+## Check that it dies properly
+
+throws_ok  { $rih3->combine_blocks() } qr/ERROR: No block aref./, 
+    'TESTING DIE ERROR when no block aref. arg. is used with combine_blocks()';
+
+throws_ok  { $rih3->combine_blocks([]) } qr/ERROR: No new name or/, 
+    'TESTING DIE ERROR when no new name arg. is used with combine_blocks()';
+
+throws_ok  { $rih3->combine_blocks('test', 'fake') } qr/ERROR: test used/, 
+    'TESTING DIE ERROR when block aref. arg. used combine_blocks() isnt AR.REF';
+
+throws_ok  { $rih3->combine_blocks(['test'], 'fake') } qr/ERROR: alias=test/, 
+    'TESTING DIE ERROR when block aref. arg. used combine_blocks() isnt AR.REF';
 
 
 ##############################################################

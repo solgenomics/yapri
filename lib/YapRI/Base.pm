@@ -50,14 +50,14 @@ $VERSION = eval $VERSION;
 
   ## Create a file-block_1
 
-  $rih->add_cmdfile('BLOCK1');
+  $rih->create_block('BLOCK1');
   $rih->add_command('x <- c(10, 9, 8, 5)', 'BLOCK1');
   $rih->add_command('z <- c(12, 8, 8, 4)', 'BLOCK1');
   $rih->add_command('x + z', 'BLOCK1')
   
   ## Create a file-block_2
 
-  $rih->add_cmdfile('BLOCK2');   
+  $rih->create_block('BLOCK2');   
   $rih->add_command('bmp(filename="myfile.bmp", width=600, height=800)', 
                     'BLOCK2');
   $rih->add_command('dev.list()', 'BLOCK2');
@@ -65,13 +65,19 @@ $VERSION = eval $VERSION;
   
   ## Run each block
 
-  $rih->run_command({ alias => 'BLOCK1' });
-  $rih->run_command({ alias => 'BLOCK2' });
+  $rih->run_block('BLOCK1');
+  $rih->run_block('BLOCK2');
 
   ## Get the results
 
    my $resultfile1 = $rih->get_resultfiles('BLOCK1');
    my $resultfile2 = $rih->get_resultfiles('BLOCK2');
+
+  ## Combine block before run it
+
+   $rih->combine_blocks(['BLOCK1', 'BLOCK2'], 'NEWBLOCK');
+   $rih->run_block('NEWBLOCK');
+
 
 
 =head1 DESCRIPTION
@@ -509,10 +515,8 @@ sub add_cmdfile {
 	unless ($cmddir =~ m/\w+/) {
 	    croak("ERROR: new cmdfile cant be created if cmddir isnt set");
 	}
-	(undef, $filename) = tempfile("RiPerlcmd_XXXXXXXX", 
-				      DIR  => $cmddir, 
-				      OPEN => 0,
-	    );
+	(my $fh, $filename) = tempfile("RiPerlcmd_XXXXXXXX", DIR => $cmddir);
+	close($fh);
     }
     
     
@@ -1070,10 +1074,10 @@ sub run_command {
 
     ## Create a tempfile to store the results
     
-    my (undef, $resultfile) = tempfile( "RiPerlresult_XXXXXXXX", 
+    my ($rfh, $resultfile) = tempfile( "RiPerlresult_XXXXXXXX", 
 					DIR => $cmddir,
-					OPEN => 0,
 	);
+    close($rfh);
 	
     $base_cmd .= " > $resultfile";
 
@@ -1095,12 +1099,134 @@ sub run_command {
 	}
     }
     else {
-	croak("\nSYSTEM FAILS running R:\n$run\n\n");
+	croak("\nSYSTEM FAILS running R:\nsystem error: $run\n\n");
     }
 }
 
 
+###################
+## BLOCK METHODS ##
+###################
 
+=head1 (*) BLOCK METHODS:
+
+=head2 ------------------
+
+ They are a collection of methods to wrap add_cmdfile functions and 
+ combine different cmdfiles
+
+=head2 combine_blocks
+
+  Usage: $rih->combine_blocks(\@blocks, $new_block); 
+
+  Desc: Create a new block based in an array of defined blocks
+
+  Ret: None
+
+  Args: \@blocks, an array reference with the blocks (cmdfiles aliases) in the
+        same order that they will be concatenated.
+
+  Side_Effects: Die if the alias used doesnt exist or doesnt have cmdfile
+
+  Example: $rih->combine_blocks(['block1', 'block3'], 'block43');
+
+=cut
+
+sub combine_blocks {
+    my $self = shift;
+    my $bl_aref = shift ||
+	croak("ERROR: No block aref. was supplied to combine_blocks function");
+    my $alias = shift ||
+	croak("ERROR: No new name or alias was supplied to combine_blocks()");
+    
+    unless (ref($bl_aref) eq 'ARRAY') {
+	croak("ERROR: $bl_aref used for combine_blocks() isnt an ARRAYREF.");
+    }
+
+    ## 1) Get the filenames for all the alias list, read them and 
+    ##    put them into an array.
+
+    my @r_cmds = ();
+    
+    foreach my $bl_alias (@{$bl_aref}) {
+	
+	my $bl_file = $self->get_cmdfiles($bl_alias);
+
+	## Die if the alias used doesnt exist
+	unless (defined $bl_file) {
+	    croak("ERROR: alias=$bl_alias at combine_blocks() doesnt exist");
+	}
+	else {
+	    my @commands = $self->get_commands($bl_alias);
+	    push @r_cmds, @commands;
+	}
+    }
+
+    ## 2) Create a temp file for the new block
+
+    $self->add_cmdfile($alias);
+
+    ## 3) Print there the commands
+
+    foreach my $cmdline (@r_cmds) {
+	$self->add_command($cmdline, $alias);
+    }
+}
+
+=head2 create_block
+
+  Usage: $rih->create_block($new_block, $base_block); 
+
+  Desc: Create a new block. A single block can be used as base.
+
+  Ret: None
+
+  Args: $new_block, new name/alias for this block
+        $base_block, base block name
+
+  Side_Effects: Die if the base alias used doesnt exist or doesnt have cmdfile
+
+  Example: $rih->create_block('block43', 'block1');
+
+=cut
+
+sub create_block {
+    my $self = shift;
+    my $alias = shift ||
+	croak("ERROR: No new name or alias was supplied to create_block()");
+    my $base = shift;
+
+    if (defined $base) {
+	$self->combine_blocks([$base], $alias);
+    }
+    else {
+	$self->add_cmdfile($alias);
+    }
+}
+
+=head2 run_block
+
+  Usage: $rih->run_block($block); 
+
+  Desc: Wrapper of run_command to run a cmdfile as block
+
+  Ret: None
+
+  Args: $block, a block name
+
+  Side_Effects: Die if the base alias used doesnt exist or doesnt have cmdfile
+
+  Example: $rih->run_block('block1');
+
+=cut
+
+sub run_block {
+    my $self = shift;
+    my $alias = shift ||
+	croak("ERROR: No new name or alias was supplied to run_block()");
+
+    $self->run_command({ alias => $alias });
+}
 
 ####
 1; #
