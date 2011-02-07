@@ -30,7 +30,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 43;
+use Test::More tests => 55;
 use Test::Exception;
 use Test::Warn;
 
@@ -195,7 +195,7 @@ throws_ok { $matrix0->_set_indexes({ '1,2' => 1 }) } qr/ERROR: indexN = 1/,
 ## DATA FUNCTIONS ##
 ####################
 
-## TEST 32 to 37
+## set_coldata function, TEST 32 to 37
 
 $matrix0->set_coldata(2, [8, 9]);
 is(join(',', @{$matrix0->get_data()}), '1,8,3,4,9,6', 
@@ -217,7 +217,7 @@ throws_ok { $matrix0->set_coldata('fake', [1]) } qr/ERROR: fake/,
 throws_ok { $matrix0->set_coldata(2, [1]) } qr/ERROR: data supplied/, 
     'TESTING DIE ERROR when data supplied to set_coldata() doesnt have same N';
 
-## TEST 38 to 43
+## set_rowdata function, TEST 38 to 43
 
 $matrix0->set_rowdata('B', [11, 59, 12]);
 is(join(',', @{$matrix0->get_data()}), '1,8,3,11,59,12', 
@@ -239,6 +239,54 @@ throws_ok { $matrix0->set_rowdata('fake', [1]) } qr/ERROR: fake/,
 throws_ok { $matrix0->set_rowdata('B', [1]) } qr/ERROR: data supplied/, 
     'TESTING DIE ERROR when data supplied to set_rowdata() doesnt have same N';
 
+## add_column, TEST 44 to 49
+
+$matrix0->add_column(4, [12, 34]);
+is(join(',', @{$matrix0->get_data()}), '1,8,3,12,11,59,12,34', 
+    "testing add_column, checking data")
+    or diag("Looks like this has failed");
+
+is($matrix0->get_coln(), 4, 
+    "testing add_column, checking new column number")
+    or diag("Looks like this has failed");
+
+is($matrix0->get_rown(), 2, 
+    "testing add_column, checking row number")
+    or diag("Looks like this has failed");
+
+throws_ok { $matrix0->add_column() } qr/ERROR: No column data/, 
+    'TESTING DIE ERROR when no column data arg. was supplied to add_column()';
+
+throws_ok { $matrix0->add_column(undef, 'fake') } qr/ERROR: column data/, 
+    'TESTING DIE ERROR when column data was supplied to add_column() isnt AREF';
+
+throws_ok { $matrix0->add_column(undef, [1]) } qr/ERROR: element N./, 
+    'TESTING DIE ERROR when column elements arent equal to row N';
+
+
+## add_row, TEST 50 to 55
+
+$matrix0->add_row('C', [15, 98, 37, 1]);
+is(join(',', @{$matrix0->get_data()}), '1,8,3,12,11,59,12,34,15,98,37,1', 
+    "testing add_row, checking data")
+    or diag("Looks like this has failed");
+
+is($matrix0->get_coln(), 4, 
+    "testing add_row, checking column number")
+    or diag("Looks like this has failed");
+
+is($matrix0->get_rown(), 3, 
+    "testing add_row, checking new row number")
+    or diag("Looks like this has failed");
+
+throws_ok { $matrix0->add_row() } qr/ERROR: No row data/, 
+    'TESTING DIE ERROR when no row data arg. was supplied to add_row()';
+
+throws_ok { $matrix0->add_row(undef, 'fake') } qr/ERROR: row data/, 
+    'TESTING DIE ERROR when row data was supplied to add_row() isnt ARRAYREF';
+
+throws_ok { $matrix0->add_row(undef, [1]) } qr/ERROR: element N./, 
+    'TESTING DIE ERROR when row elements arent equal to col N';
 
 
 ##############################################################

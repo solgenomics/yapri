@@ -57,13 +57,13 @@ $VERSION = eval $VERSION;
   $rmatrix->set_coldata($colname, [$y1, $y2, $y3, $y4]);
   $rmatrix->set_rowdata($rowname, [$x1, $x2, $x3]);
   
-  $rmatrix->push_newcol($colname, [$yy1, $yy2, $yy3, $yy4]);
-  $rmatrix->push_newrow($rowname, [$xx1, $xx2, $xx3]);
+  $rmatrix->add_column($colname, [$yy1, $yy2, $yy3, $yy4]);
+  $rmatrix->add_row($rowname, [$xx1, $xx2, $xx3]);
 
-  my @oldcol = $rmatrix->pop_col();
-  my @oldrow = $rmatrix->pop_row();
+  my @oldcol = $rmatrix->remove_column();
+  my @oldrow = $rmatrix->remove_row();
 
-  $rmatrix->change_col($col_x, $col_z);
+  $rmatrix->change_column($col_x, $col_z);
   $rmatrix->change_row($row_x, $row_z);
 
 
@@ -463,6 +463,13 @@ sub set_colnames {
 	    croak("ERROR: Different number of names and cols for set_colnames");
 	}
     }
+    elsif ($coln =~ m/^\d+$/ && $namesn == 0) {  ## Add by default colnames 
+	my $n = 0;                               ## from 0 to coln-1
+	while ($n + 1 <= $coln) {
+	    push @{$colnam_aref}, $n;
+	    $n++;
+	}
+    }
 
     $self->{colnames} = $colnam_aref;
 }
@@ -524,6 +531,13 @@ sub set_rownames {
     if ($rown =~ m/^\d+$/ && $namesn > 0) {
 	unless ($namesn == $rown) {
 	    croak("ERROR: Different number of names and rows for set_rownames");
+	}
+    }
+    elsif ($rown =~ m/^\d+$/ && $namesn == 0) {  ## Add by default rownames 
+	my $n = 0;                               ## from 0 to coln-1
+	while ($n + 1 <= $rown) {
+	    push @{$rownam_aref}, $n;
+	    $n++;
 	}
     }
 
@@ -873,6 +887,166 @@ sub set_rowdata {
 	    $data_aref->[$index{$i}] = $row_aref->[$c];
 	}
     }
+}
+
+=head2 add_column
+
+  Usage: $rmatrix->add_column($colname, \@col_data);
+
+  Desc: Add a new column to the object, rebuilding the indexes and edinting
+        column number
+ 
+  Ret: None
+
+  Args: $colname, a scalar with the name of the column
+        $coldata_aref, an array ref. with the data of the column    
+        
+  Side_Effects: Die if the number of elements in the data array is different
+                than the row number
+                Rebuild and reset the matrix indexes and the coln.
+
+  Example: $rmatrix->add_column('col1', [1, 2]);
+          
+=cut
+
+sub add_column {
+    my $self = shift;
+    my $colname = shift;
+    
+    ## Check variables
+
+    my $coldata_aref = shift ||
+	croak("ERROR: No column data was supplied to add a new column");
+
+    unless (ref($coldata_aref) eq 'ARRAY') {
+	croak("ERROR: column data aref = $coldata_aref isnt a ARRAY REF.")
+    }
+    else {
+	my $rown = $self->get_rown();
+	if ($rown != scalar(@{$coldata_aref})) {
+	    croak("ERROR: element N. for col. data isnt equal to row N.");
+	}
+    }
+
+    ## Now it will add a new coln
+
+    my $old_coln = $self->get_coln();
+    $self->set_coln($old_coln + 1);
+
+    ## If it defined colname, it will add it
+
+    if (defined $colname) {
+	push @{$self->get_colnames()}, $colname;
+    }
+    else {
+	push @{$self->get_colnames()}, $old_coln; 
+    }
+
+    ## Get the indexes to add new data and flip the hash
+
+    my %rev_index = ();
+    my %indexes = %{$self->_get_indexes()};
+    foreach my $i (keys %indexes) {
+	my ($r, $c) = split(/,/, $i);
+	$rev_index{$indexes{$i}} = [$r, $c];
+    }
+
+	
+    ## Prepare a new array data
+
+    my @newdata = ();
+
+    ## Use the old data, adding a new data from the column aref. after the
+    ## element from the array
+
+    my $a = 0;
+    my @data = @{$self->get_data()};
+    foreach my $el (@data) {
+	
+	my ($rr, $cc) = @{$rev_index{$a}};
+	$a++;
+	push @newdata, $el;
+	if ($cc + 1 == $old_coln) {
+	    push @newdata, $coldata_aref->[$rr];
+	}
+    }
+
+    ## finally set_data (it will rebuild the indexes)
+    $self->set_data(\@newdata);
+}
+
+
+=head2 add_row
+
+  Usage: $rmatrix->add_row($rowname, \@row_data);
+
+  Desc: Add a new row to the object, rebuilding the indexes and edinting
+        row number
+ 
+  Ret: None
+
+  Args: $rowname, a scalar with the name of the row
+        $rowdata_aref, an array ref. with the data of the row   
+        
+  Side_Effects: Die if the number of elements in the data array is different
+                than the col number
+                Rebuild and reset the matrix indexes and the rown.
+
+  Example: $rmatrix->add_row('row3', [1, 2]);
+          
+=cut
+
+sub add_row {
+    my $self = shift;
+    my $rowname = shift;
+    
+    ## Check variables
+
+    my $rowdata_aref = shift ||
+	croak("ERROR: No row data was supplied to add a new row");
+
+    unless (ref($rowdata_aref) eq 'ARRAY') {
+	croak("ERROR: row data aref = $rowdata_aref isnt a ARRAY REF.")
+    }
+    else {
+	my $coln = $self->get_coln();
+	if ($coln != scalar(@{$rowdata_aref})) {
+	    croak("ERROR: element N. for row. data isnt equal to col N.");
+	}
+    }
+
+    ## Now it will add a new rown
+
+    my $old_rown = $self->get_rown();
+    $self->set_rown($old_rown + 1);
+
+    ## If it defined rowname, it will add it
+
+    if (defined $rowname) {
+	push @{$self->get_rownames()}, $rowname;
+    }
+    else {
+	push @{$self->get_rownames()}, $old_rown; 
+    }
+
+    ## Get the indexes to add new data and flip the hash
+
+    my %rev_index = ();
+    my %indexes = %{$self->_get_indexes()};
+    foreach my $i (keys %indexes) {
+	my ($r, $c) = split(/,/, $i);
+	$rev_index{$indexes{$i}} = [$r, $c];
+    }
+	
+    ## It is ordered by row, so it will add everything after the last row
+    ## that means that it will push the data. To mantain the same behaviour 
+    ## than add_column it will create a new array;
+
+    my @data = @{$self->get_data};
+    push @data, @{$rowdata_aref};
+
+    ## finally set_data (it will rebuild the indexes)
+    $self->set_data(\@data);
 }
 
 
