@@ -30,7 +30,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 55;
+use Test::More tests => 68;
 use Test::Exception;
 use Test::Warn;
 
@@ -168,7 +168,7 @@ throws_ok { $matrix0->set_data([1, 2, 3, 4]) } qr/ERROR: data_n = 4/,
 ## INTERNAL FUNCTIONS ##
 ########################
 
-## TEST 27 to 31
+## TEST 27 to 32
 
 my %imtx = $matrix0->_index_matrix();
 is(scalar(keys %imtx), $matrix0->get_rown() * $matrix0->get_coln(),
@@ -176,10 +176,16 @@ is(scalar(keys %imtx), $matrix0->get_rown() * $matrix0->get_coln(),
     or diag("Looks like this has failed");
 
 $matrix0->_set_indexes(\%imtx);
-is(scalar(keys %{$matrix0->_get_indexes}), 
+is(scalar(keys %{$matrix0->_get_indexes()}), 
    $matrix0->get_rown() * $matrix0->get_coln(),
     "testing _get/set_matrix, checking number of indexes")
     or diag("Looks like this has failed");
+
+is(join(',', sort(keys %{$matrix0->_get_rev_indexes()})), 
+   join(',', sort(values %{$matrix0->_get_indexes()})),
+   "testing _get_rev_indexes(), checking id of the revb indexes")
+    or diag("Looks like this has failed");
+
 
 throws_ok { $matrix0->_set_indexes() } qr/ERROR: No index href/, 
     'TESTING DIE ERROR when no arg. was supplied to _set_indexes() function';
@@ -195,7 +201,7 @@ throws_ok { $matrix0->_set_indexes({ '1,2' => 1 }) } qr/ERROR: indexN = 1/,
 ## DATA FUNCTIONS ##
 ####################
 
-## set_coldata function, TEST 32 to 37
+## set_coldata function, TEST 33 to 38
 
 $matrix0->set_coldata(2, [8, 9]);
 is(join(',', @{$matrix0->get_data()}), '1,8,3,4,9,6', 
@@ -217,7 +223,7 @@ throws_ok { $matrix0->set_coldata('fake', [1]) } qr/ERROR: fake/,
 throws_ok { $matrix0->set_coldata(2, [1]) } qr/ERROR: data supplied/, 
     'TESTING DIE ERROR when data supplied to set_coldata() doesnt have same N';
 
-## set_rowdata function, TEST 38 to 43
+## set_rowdata function, TEST 39 to 44
 
 $matrix0->set_rowdata('B', [11, 59, 12]);
 is(join(',', @{$matrix0->get_data()}), '1,8,3,11,59,12', 
@@ -239,7 +245,7 @@ throws_ok { $matrix0->set_rowdata('fake', [1]) } qr/ERROR: fake/,
 throws_ok { $matrix0->set_rowdata('B', [1]) } qr/ERROR: data supplied/, 
     'TESTING DIE ERROR when data supplied to set_rowdata() doesnt have same N';
 
-## add_column, TEST 44 to 49
+## add_column, TEST 45 to 50
 
 $matrix0->add_column(4, [12, 34]);
 is(join(',', @{$matrix0->get_data()}), '1,8,3,12,11,59,12,34', 
@@ -264,7 +270,7 @@ throws_ok { $matrix0->add_column(undef, [1]) } qr/ERROR: element N./,
     'TESTING DIE ERROR when column elements arent equal to row N';
 
 
-## add_row, TEST 50 to 55
+## add_row, TEST 51 to 56
 
 $matrix0->add_row('C', [15, 98, 37, 1]);
 is(join(',', @{$matrix0->get_data()}), '1,8,3,12,11,59,12,34,15,98,37,1', 
@@ -287,6 +293,60 @@ throws_ok { $matrix0->add_row(undef, 'fake') } qr/ERROR: row data/,
 
 throws_ok { $matrix0->add_row(undef, [1]) } qr/ERROR: element N./, 
     'TESTING DIE ERROR when row elements arent equal to col N';
+
+
+## delete_column, TEST 57 to 62
+
+my @deleted_col = $matrix0->delete_column(3);
+is(join(',', @{$matrix0->get_data()}), '1,8,12,11,59,34,15,98,1',
+    "testing delete_column, checking data")
+    or diag("Looks like this has failed");
+
+is($matrix0->get_coln(), 3, 
+    "testing delete_column, checking new column number")
+    or diag("Looks like this has failed");
+
+is($matrix0->get_rown(), 3, 
+    "testing delete_column, checking row number")
+    or diag("Looks like this has failed");
+
+is(join(',', @deleted_col), '3,12,37',
+    "testing delete_column, checkin deleted data")
+    or diag("Looks like this has failed");
+
+throws_ok { $matrix0->delete_column() } qr/ERROR: No colname/, 
+    'TESTING DIE ERROR when no colname arg. was supplied to delete_column()';
+
+throws_ok { $matrix0->delete_column('fake') } qr/ERROR: fake used for/, 
+    'TESTING DIE ERROR when colname supplied to delete_column() doesnt exist';
+
+
+## delete_column, TEST 63 to 68
+
+my @deleted_row = $matrix0->delete_row('B');
+is(join(',', @{$matrix0->get_data()}), '1,8,12,15,98,1',
+    "testing delete_row, checking data")
+    or diag("Looks like this has failed");
+
+is($matrix0->get_coln(), 3, 
+    "testing delete_row, checking column number")
+    or diag("Looks like this has failed");
+
+is($matrix0->get_rown(), 2, 
+    "testing delete_row, checking new row number")
+    or diag("Looks like this has failed");
+
+is(join(',', @deleted_row), '11,59,34',
+    "testing delete_row, checkin deleted data")
+    or diag("Looks like this has failed");
+
+throws_ok { $matrix0->delete_row() } qr/ERROR: No rowname/, 
+    'TESTING DIE ERROR when no rowname arg. was supplied to delete_row()';
+
+throws_ok { $matrix0->delete_row('fake') } qr/ERROR: fake used for/, 
+    'TESTING DIE ERROR when rowname supplied to delete_row() doesnt exist';
+
+
 
 
 ##############################################################

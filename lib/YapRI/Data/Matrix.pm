@@ -60,8 +60,8 @@ $VERSION = eval $VERSION;
   $rmatrix->add_column($colname, [$yy1, $yy2, $yy3, $yy4]);
   $rmatrix->add_row($rowname, [$xx1, $xx2, $xx3]);
 
-  my @oldcol = $rmatrix->remove_column();
-  my @oldrow = $rmatrix->remove_row();
+  my @oldcol = $rmatrix->remove_column($colname);
+  my @oldrow = $rmatrix->remove_row($rowname);
 
   $rmatrix->change_column($col_x, $col_z);
   $rmatrix->change_row($row_x, $row_z);
@@ -649,6 +649,38 @@ sub _get_indexes {
     return $self->{_indexes};
 }
 
+=head2 _get_rev_indexes
+
+  Usage: my $revindex_href = $matrix->_get_rev_indexes();
+
+  Desc: Get then matrix indexes for columns and rows, with the following 
+        format:
+          $index_href = { $array_element => [ $row, $col ] }
+ 
+  Ret: $rindex_href, a hash reference with the matrix indexes.
+
+  Args: None    
+        
+  Side_Effects: None
+
+  Example: my %revindexes = %{$matrix->_get_rev_indexes()};
+          
+=cut
+
+sub _get_rev_indexes {
+    my $self = shift;
+    
+    my %rev_index = ();
+    my %indexes = %{$self->_get_indexes()};
+    foreach my $i (keys %indexes) {
+	my ($r, $c) = split(/,/, $i);
+	$rev_index{$indexes{$i}} = [$r, $c];
+    }
+    return \%rev_index;
+}
+
+
+
 =head2 _set_indexes
 
   Usage: $matrix->_set_indexes(\%indexes);
@@ -944,13 +976,7 @@ sub add_column {
 
     ## Get the indexes to add new data and flip the hash
 
-    my %rev_index = ();
-    my %indexes = %{$self->_get_indexes()};
-    foreach my $i (keys %indexes) {
-	my ($r, $c) = split(/,/, $i);
-	$rev_index{$indexes{$i}} = [$r, $c];
-    }
-
+    my %rev_index = %{$self->_get_rev_indexes()};
 	
     ## Prepare a new array data
 
@@ -1031,12 +1057,7 @@ sub add_row {
 
     ## Get the indexes to add new data and flip the hash
 
-    my %rev_index = ();
-    my %indexes = %{$self->_get_indexes()};
-    foreach my $i (keys %indexes) {
-	my ($r, $c) = split(/,/, $i);
-	$rev_index{$indexes{$i}} = [$r, $c];
-    }
+    my %rev_index = %{$self->_get_rev_indexes()};
 	
     ## It is ordered by row, so it will add everything after the last row
     ## that means that it will push the data. To mantain the same behaviour 
@@ -1048,6 +1069,173 @@ sub add_row {
     ## finally set_data (it will rebuild the indexes)
     $self->set_data(\@data);
 }
+
+
+=head2 delete_column
+
+  Usage: my @coldata = $rmatrix->delete_column($colname);
+
+  Desc: Delete a column to the object, rebuilding the indexes and edinting
+        column number
+ 
+  Ret: @coldata, an array with the column data deleted
+
+  Args: $colname, a scalar with the name of the column  
+        
+  Side_Effects: Die if the column doesnt exist.
+                Rebuild indexes and reset coln.
+
+  Example: my @coldata = $rmatrix->delete_column('col1');
+          
+=cut
+
+sub delete_column {
+    my $self = shift;
+    my $colname = shift ||
+	croak("ERROR: No colname was supplied to delete_column()");
+
+    my @newcolnames = ();
+    my @oldcolnames = @{$self->get_colnames()};
+    my $del = '';
+
+    my $n = 0;
+    foreach my $old (@oldcolnames) {
+	unless ($colname eq $old) {
+	    push @newcolnames, $old;
+	}
+	else {
+	    $del = $n;  ## Keep the index for the deleted column
+	}
+	$n++;
+    }
+
+    ## Die if they have the same number of elements (doesnt exist colname)
+
+    if (scalar(@newcolnames) == scalar(@oldcolnames)) {
+	croak("ERROR: $colname used for delete_column() isnt in colname list");
+    }
+
+    ## Change the number of coln
+
+    my $oldcoln = $self->get_coln();
+    $self->set_coln($oldcoln - 1);
+
+    ## And set the new names 
+
+    $self->set_colnames(\@newcolnames);
+
+    ## Finally it should remove the data
+
+    my %revindex = %{$self->_get_rev_indexes()};
+
+    my @deleted = ();
+    my @newdata = ();
+    my @data = @{$self->get_data()};
+
+    my $a = 0;
+    foreach my $data (@data) {
+	my ($r, $c) = @{$revindex{$a}};
+	if ($c != $del) {
+	    push @newdata, $data;
+	}
+	else {
+	    push @deleted, $data;
+	}
+	$a++;
+    }
+    
+    ## And add to the object returning the deleted data
+
+    $self->set_data(\@newdata);   
+    return @deleted;
+}
+    
+
+=head2 delete_row
+
+  Usage: my @rowdata = $rmatrix->delete_row($rowname);
+
+  Desc: Delete a row to the object, rebuilding the indexes and edinting
+        row number
+ 
+  Ret: @rowdata, an array with the row data deleted
+
+  Args: $rowname, a scalar with the name of the row  
+        
+  Side_Effects: Die if the row doesnt exist.
+                Rebuild indexes and reset rown.
+
+  Example: my @rowdata = $rmatrix->delete_row('row1');
+          
+=cut
+
+sub delete_row {
+    my $self = shift;
+    my $rowname = shift ||
+	croak("ERROR: No rowname was supplied to delete_row()");
+
+    my @newrownames = ();
+    my @oldrownames = @{$self->get_rownames()};
+    my $del = '';
+
+    my $n = 0;
+    foreach my $old (@oldrownames) {
+	unless ($rowname eq $old) {
+	    push @newrownames, $old;
+	}
+	else {
+	    $del = $n;  ## Keep the index for the deleted row
+	}
+	$n++;
+    }
+
+    ## Die if they have the same number of elements (doesnt exist colname)
+
+    if (scalar(@newrownames) == scalar(@oldrownames)) {
+	croak("ERROR: $rowname used for delete_row() isnt in rowname list");
+    }
+
+    ## Change the number of coln
+
+    my $oldrown = $self->get_rown();
+    $self->set_rown($oldrown - 1);
+
+    ## And set the new names 
+
+    $self->set_rownames(\@newrownames);
+
+    ## Finally it should remove the data
+
+    my %revindex = %{$self->_get_rev_indexes()};
+
+    my @deleted = ();
+    my @newdata = ();
+    my @data = @{$self->get_data()};
+
+    my $a = 0;
+    foreach my $data (@data) {
+	my ($r, $c) = @{$revindex{$a}};
+	if ($r != $del) {
+	    push @newdata, $data;
+	}
+	else {
+	    push @deleted, $data;
+	}
+	$a++;
+    }
+    
+    ## And add to the object returning the deleted data
+
+    $self->set_data(\@newdata);   
+    return @deleted;
+}
+
+
+
+
+
+
+
 
 
 ####
