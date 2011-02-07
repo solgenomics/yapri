@@ -63,8 +63,8 @@ $VERSION = eval $VERSION;
   my @oldcol = $rmatrix->remove_column($colname);
   my @oldrow = $rmatrix->remove_row($rowname);
 
-  $rmatrix->change_column($col_x, $col_z);
-  $rmatrix->change_row($row_x, $row_z);
+  $rmatrix->change_columns($col_x, $col_z);
+  $rmatrix->change_rows($row_x, $row_z);
 
 
   ## Parsers:
@@ -1230,13 +1230,172 @@ sub delete_row {
     return @deleted;
 }
 
+=head2 change_columns
+
+  Usage: $rmatrix->change_columns($colname1, $colname2);
+
+  Desc: Change the order of two columns
+ 
+  Ret: None
+
+  Args: $colname1, column name 1, 
+        $colname2, column name 2,  
+        
+  Side_Effects: Die if the any of the column names used doesnt exist.
+
+  Example: $rmatrix->change_columns('col1', 'col2');
+          
+=cut
+
+sub change_columns {
+    my $self = shift;
+    my $colname1 = shift ||
+	croak("ERROR: no colname1 arg. was supplied to change_columns()");
+
+    my $colname2 = shift ||
+	croak("ERROR: no colname2 arg. was supplied to change_columns()");
 
 
+    my %col_index = ( $colname1 => '', $colname2 => '' );
+
+    ## Get the index for this two colnames
+
+    my @colnames = @{$self->get_colnames()};
+    my ($n, $match) = (0, 0);
+    foreach my $col (@colnames) {
+	foreach my $selcol (keys %col_index) {
+	    if ($col eq $selcol) {
+		$col_index{$selcol} = $n;
+		$match++;
+	    }
+	}
+	$n++;
+    }
+
+    ## Die if match == 2
+
+    if ($match != 2) {
+	croak("ERROR: one or two of the colnames supplied isnt column list.");
+    }
+
+    ## Now, it has two col, so it will get the data
+
+    my %col_data = ( $colname1 => [], $colname2 => [] );
+    my @data = @{$self->get_data()};
+    my %revindex = %{$self->_get_rev_indexes()};
+    
+    my $a = 0;
+    foreach my $data (@data) {
+	my ($r, $c) = @{$revindex{$a}};
+	foreach my $colnm (keys %col_index) {
+	    if ($col_index{$colnm} == $c) {
+		push @{$col_data{$colnm}}, $data;
+	    }
+	}
+	$a++;
+    }
 
 
+    ## Finally it will change the order in the colname array and it will set
+    ## the coldata
+
+    my %changed = ( 
+	$colname2 => $colname1,
+	$colname1 => $colname2,
+	);
+
+    foreach my $chname (keys %changed) {	
+	$self->set_coldata($chname, $col_data{$changed{$chname}});
+	
+	my $old_idx = $col_index{$chname};
+	my $new_idx = $col_index{$changed{$chname}};
+	$self->get_colnames()->[$old_idx] = $changed{$chname};
+    } 
+}
 
 
+=head2 change_rows
 
+  Usage: $rmatrix->change_rows($rowname1, $rowname2);
+
+  Desc: Change the order of two rows
+ 
+  Ret: None
+
+  Args: $rowname1, row name 1, 
+        $rowname2, row name 2,  
+        
+  Side_Effects: Die if the any of the row names used doesnt exist.
+
+  Example: $rmatrix->change_rows('row1', 'row2');
+          
+=cut
+
+sub change_rows {
+    my $self = shift;
+    my $rowname1 = shift ||
+	croak("ERROR: no rowname1 arg. was supplied to change_rows()");
+
+    my $rowname2 = shift ||
+	croak("ERROR: no rowname2 arg. was supplied to change_rows()");
+
+
+    my %row_index = ( $rowname1 => '', $rowname2 => '' );
+
+    ## Get the index for this two rownames
+
+    my @rownames = @{$self->get_rownames()};
+    my ($n, $match) = (0, 0);
+    foreach my $row (@rownames) {
+	foreach my $selrow (keys %row_index) {
+	    if ($row eq $selrow) {
+		$row_index{$selrow} = $n;
+		$match++;
+	    }
+	}
+	$n++;
+    }
+
+    ## Die if match == 2
+
+    if ($match != 2) {
+	croak("ERROR: one or two of the rownames supplied isnt row list.");
+    }
+
+    ## Now, it has two row, so it will get the data
+
+    my %row_data = ( $rowname1 => [], $rowname2 => [] );
+    my @data = @{$self->get_data()};
+    my %revindex = %{$self->_get_rev_indexes()};
+    
+    my $a = 0;
+    foreach my $data (@data) {
+	my ($r, $c) = @{$revindex{$a}};
+	foreach my $rownm (keys %row_index) {
+	    if ($row_index{$rownm} == $r) {
+		push @{$row_data{$rownm}}, $data;
+	    }
+	}
+	$a++;
+    }
+
+
+    ## Finally it will change the order in the rowname array and it will set
+    ## the coldata
+
+    my %changed = ( 
+	$rowname2 => $rowname1,
+	$rowname1 => $rowname2,
+	);
+
+    foreach my $chname (keys %changed) {	
+	$self->set_rowdata($chname, $row_data{$changed{$chname}});
+	
+	my $old_idx = $row_index{$chname};
+	my $new_idx = $row_index{$changed{$chname}};
+	$self->get_rownames()->[$old_idx] = $changed{$chname};
+    } 
+}
 
 ####
 1; #

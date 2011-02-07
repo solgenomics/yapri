@@ -30,7 +30,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 68;
+use Test::More tests => 78;
 use Test::Exception;
 use Test::Warn;
 
@@ -345,6 +345,48 @@ throws_ok { $matrix0->delete_row() } qr/ERROR: No rowname/,
 
 throws_ok { $matrix0->delete_row('fake') } qr/ERROR: fake used for/, 
     'TESTING DIE ERROR when rowname supplied to delete_row() doesnt exist';
+
+
+## Change_columns, TEST 69 to 73
+
+$matrix0->change_columns(1, 4);
+is(join(',', @{$matrix0->get_data()}), '12,8,1,1,98,15',
+    "testing change_columns, checking data")
+    or diag("Looks like this has failed");
+
+is(join(',', @{$matrix0->get_colnames()}), '4,2,1',
+    "testing change_columns, checking column names order")
+    or diag("Looks like this has failed");
+
+throws_ok { $matrix0->change_columns() } qr/ERROR: no colname1 arg./, 
+    'TESTING DIE ERROR when no colname1 arg. was supplied to change_columns()';
+
+throws_ok { $matrix0->change_columns(1) } qr/ERROR: no colname2 arg./, 
+    'TESTING DIE ERROR when no colname2 arg. was supplied to change_columns()';
+
+throws_ok { $matrix0->change_columns('fake', 1) } qr/ERROR: one or two/, 
+    'TESTING DIE ERROR when colname supplied to change_columns() doesnt exist';
+
+
+## Change_rows, TEST 74 to 78
+
+$matrix0->change_rows('A', 'C');
+is(join(',', @{$matrix0->get_data()}), '1,98,15,12,8,1',
+    "testing change_rows, checking data")
+    or diag("Looks like this has failed");
+
+is(join(',', @{$matrix0->get_rownames()}), 'C,A',
+    "testing change_rows, checking row names order")
+    or diag("Looks like this has failed");
+
+throws_ok { $matrix0->change_rows() } qr/ERROR: no rowname1 arg./, 
+    'TESTING DIE ERROR when no rowname1 arg. was supplied to change_rows()';
+
+throws_ok { $matrix0->change_rows('C') } qr/ERROR: no rowname2 arg./, 
+    'TESTING DIE ERROR when no rowname2 arg. was supplied to change_rows()';
+
+throws_ok { $matrix0->change_rows('fake', 'C') } qr/ERROR: one or two/, 
+    'TESTING DIE ERROR when rowname supplied to change_rows() doesnt exist';
 
 
 
