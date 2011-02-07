@@ -30,7 +30,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 26;
+use Test::More tests => 43;
 use Test::Exception;
 use Test::Warn;
 
@@ -161,9 +161,83 @@ throws_ok { $matrix0->set_data('fake') } qr/ERROR: fake supplied/,
     'TESTING DIE ERROR when arg. supplied to set_data() isnt ARAYREF';
 
 throws_ok { $matrix0->set_data([1, 2, 3, 4]) } qr/ERROR: data_n = 4/,
-    'TESTING DIE ERROR when arg. supplied to set_data() has diff. rown';
+    'TESTING DIE ERROR when arg. supplied to set_data() has diff. expected n';
 
 
+########################
+## INTERNAL FUNCTIONS ##
+########################
+
+## TEST 27 to 31
+
+my %imtx = $matrix0->_index_matrix();
+is(scalar(keys %imtx), $matrix0->get_rown() * $matrix0->get_coln(),
+    "testing _index_matrix, checking number of indexes")
+    or diag("Looks like this has failed");
+
+$matrix0->_set_indexes(\%imtx);
+is(scalar(keys %{$matrix0->_get_indexes}), 
+   $matrix0->get_rown() * $matrix0->get_coln(),
+    "testing _get/set_matrix, checking number of indexes")
+    or diag("Looks like this has failed");
+
+throws_ok { $matrix0->_set_indexes() } qr/ERROR: No index href/, 
+    'TESTING DIE ERROR when no arg. was supplied to _set_indexes() function';
+
+throws_ok { $matrix0->_set_indexes('fake') } qr/ERROR: fake supplied/, 
+    'TESTING DIE ERROR when arg. supplied to _set_indexes() isnt HASHREF';
+
+throws_ok { $matrix0->_set_indexes({ '1,2' => 1 }) } qr/ERROR: indexN = 1/,
+    'TESTING DIE ERROR when arg. supplied to _set_indexes() has diff. expected';
+
+
+####################
+## DATA FUNCTIONS ##
+####################
+
+## TEST 32 to 37
+
+$matrix0->set_coldata(2, [8, 9]);
+is(join(',', @{$matrix0->get_data()}), '1,8,3,4,9,6', 
+    "testing set_coldata, checking data")
+    or diag("Looks like this has failed");
+
+throws_ok { $matrix0->set_coldata() } qr/ERROR: No colname/, 
+    'TESTING DIE ERROR when no arg. was supplied to set_coldata() function';
+
+throws_ok { $matrix0->set_coldata(2) } qr/ERROR: No column data aref/, 
+    'TESTING DIE ERROR when no column data aref. was supplied to set_coldata()';
+
+throws_ok { $matrix0->set_coldata(2, 1) } qr/ERROR: column data aref = 1/, 
+    'TESTING DIE ERROR when col. aref. supplied to set_coldata() isnt ARRAYREF';
+
+throws_ok { $matrix0->set_coldata('fake', [1]) } qr/ERROR: fake/, 
+    'TESTING DIE ERROR when col. name supplied to set_coldata() doesnt exist';
+
+throws_ok { $matrix0->set_coldata(2, [1]) } qr/ERROR: data supplied/, 
+    'TESTING DIE ERROR when data supplied to set_coldata() doesnt have same N';
+
+## TEST 38 to 43
+
+$matrix0->set_rowdata('B', [11, 59, 12]);
+is(join(',', @{$matrix0->get_data()}), '1,8,3,11,59,12', 
+    "testing set_rowdata, checking data")
+    or diag("Looks like this has failed");
+
+throws_ok { $matrix0->set_rowdata() } qr/ERROR: No rowname/, 
+    'TESTING DIE ERROR when no arg. was supplied to set_rowdata() function';
+
+throws_ok { $matrix0->set_rowdata('B') } qr/ERROR: No row data aref/, 
+    'TESTING DIE ERROR when no row data aref. was supplied to set_rowdata()';
+
+throws_ok { $matrix0->set_rowdata('B', 1) } qr/ERROR: row data aref = 1/, 
+    'TESTING DIE ERROR when row aref. supplied to set_rowdata() isnt ARRAYREF';
+
+throws_ok { $matrix0->set_rowdata('fake', [1]) } qr/ERROR: fake/, 
+    'TESTING DIE ERROR when row. name supplied to set_rowdata() doesnt exist';
+
+throws_ok { $matrix0->set_rowdata('B', [1]) } qr/ERROR: data supplied/, 
+    'TESTING DIE ERROR when data supplied to set_rowdata() doesnt have same N';
 
 
 

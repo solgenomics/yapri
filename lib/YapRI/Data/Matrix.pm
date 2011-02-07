@@ -54,17 +54,17 @@ $VERSION = eval $VERSION;
 
   ## Adding/deleting/changing data:
 
-  $rmatrix->add_coldata($col_y, [$y1, $y2, $y3, $y4]);
-  $rmatrix->add_rowdata($row_x, [$x1, $x2, $x3]);
+  $rmatrix->set_coldata($colname, [$y1, $y2, $y3, $y4]);
+  $rmatrix->set_rowdata($rowname, [$x1, $x2, $x3]);
   
-  $rmatrix->push_col([$yy1, $yy2, $yy3, $yy4]);
-  $rmatrix->push_row([$xx1, $xx2, $xx3]);
+  $rmatrix->push_newcol($colname, [$yy1, $yy2, $yy3, $yy4]);
+  $rmatrix->push_newrow($rowname, [$xx1, $xx2, $xx3]);
 
   my @oldcol = $rmatrix->pop_col();
   my @oldrow = $rmatrix->pop_row();
 
   $rmatrix->change_col($col_x, $col_z);
-  $rmatrix->change_col($col_x, $col_z);
+  $rmatrix->change_row($row_x, $row_z);
 
 
   ## Parsers:
@@ -600,12 +600,280 @@ sub set_data {
 	    croak("ERROR: data_n = $data_n != ($rown x $coln) to set_data().");
 	}
     }
-
     $self->{data} = $data_aref;
+
+    ## And set the indexes for the matrix
+
+    my %indexes = $self->_index_matrix();
+    $self->_set_indexes(\%indexes);
+}
+
+########################
+## INTERNAL FUNCTIONS ##
+########################
+
+=head2 _get_indexes
+
+  Usage: my $index_href = $matrix->_get_indexes();
+
+  Desc: Get then matrix indexes for columns and rows, with the following 
+        format:
+          $index_href = { $row,$col => $array_element }
+ 
+  Ret: $index_href, a hash reference with the matrix indexes.
+
+  Args: None    
+        
+  Side_Effects: None
+
+  Example: my %indexes = @{$matrix->_get_indexes()};
+          
+=cut
+
+sub _get_indexes {
+    my $self = shift;
+    return $self->{_indexes};
+}
+
+=head2 _set_indexes
+
+  Usage: $matrix->_set_indexes(\%indexes);
+
+  Desc: Set the matrix indexes for the data contained in the matrix
+
+  Ret: None
+
+  Args: \%indexes, a hash reference with key=$row,$col and value=$arrayposition
+        
+  Side_Effects: Die if undef value is used
+                Die if argument is not an hash reference.
+                Die if number of element in the hash isnt equal to  
+                coln x rown (for example if coln=3 and rown=2, it should have
+                6 elements)
+
+  Example: $matrix->set_data([1, 2, 3, 4]);
+          
+=cut
+
+sub _set_indexes {
+    my $self = shift;
+    my $ind_href = shift ||
+	croak("ERROR: No index href argument was supplied to _set_indexes()");
+
+    if (ref($ind_href) ne 'HASH') {
+	croak("ERROR: $ind_href supplied to _set_indexes() isnt HASHREF.");
+    }
+    my $n = scalar(keys %{$ind_href});
+    
+    ## Check that is has the same number of elements than coln x rown
+
+    my $coln = $self->get_coln();
+    my $rown = $self->get_rown();
+    
+    if ($coln =~ m/^\d+$/ && $rown =~ m/^\d+$/ && $n > 0) {
+	my $elems = $coln * $rown;
+	if ($n != $elems) {
+	    croak("ERROR: indexN = $n != ($rown x $coln) to _set_indexes().");
+	}
+    }
+
+    $self->{_indexes} = $ind_href;
+}
+
+=head2 _index_matrix
+
+  Usage: my %index_matrix = $self->_index_matrix();
+
+  Desc: Index the matrix with an array to know segment the matrix in elements
+        %index_matrix = ( $arrayposition => { row => $rowposition,
+                                              col => $colposition 
+                                            });
+ 
+  Ret: The index matrix, a hash with the following elements:
+       %index_matrix = ( $arrayposition => { $rowposition, $colposition })
+
+  Args: None  
+        
+  Side_Effects: None
+
+  Example: my %index_matrix = $self->_index_matrix();
+          
+=cut
+
+sub _index_matrix {
+    my $self = shift;
+
+    ## Define index
+
+    my %index = ();
+
+    ## Get the rown, coln and data
+
+    my $rown = $self->get_rown();
+    my $coln = $self->get_coln();
+    my @data = @{$self->get_data()};
+
+    ## Assign positions
+
+    my ($a, $r, $c) = (0, 0, 0);
+    foreach my $data (@data) {
+	$index{$r . ',' . $c} = $a;
+	$a++;
+	$c++;
+	if ($c + 1 > $coln) {
+	    $r++;
+	    $c = 0;
+	}
+    }
+    
+    return %index;
 }
 
 
+#####################
+## DATA FUNCTIONS ###
+#####################
 
+=head2 set_coldata
+
+  Usage: $rmatrix->set_coldata($colname, \@col_data);
+
+  Desc: Add data to an existing column, overwriting the old data
+ 
+  Ret: None
+
+  Args: $colname, a scalar with the name of the column
+        $coldata_aref, an array ref. with the data of the column    
+        
+  Side_Effects: Die if no colname is used.
+                Die if the number of elements in the data array is different
+                than the rown
+
+  Example: $rmatrix->set_coldata('col1', [1, 2]);
+           $rmatrix->set_coldata($colnames[0], [1, 2]);
+          
+=cut
+
+sub set_coldata {
+    my $self = shift;
+    my $colname = shift ||
+	croak("ERROR: No colname was supplied to add_coldata()");
+    
+    my $col_aref = shift ||
+	croak("ERROR: No column data aref. was supplied to add_coldata()");
+
+    unless(ref($col_aref) eq 'ARRAY') {
+	croak("ERROR: column data aref = $col_aref isnt a ARRAY REF.")
+    }
+
+    ## Check if the colname exists or the colposition, and asign a col. 
+    ## position for the colname.
+    
+    my $colpos;
+    
+    my @colnames = @{$self->get_colnames()};
+    my $n = 0;
+    foreach my $col (@colnames) {
+	if ($col eq $colname) {
+	    $colpos = $n;
+	}
+	$n++;
+    }
+    unless (defined $colpos) {
+	croak("ERROR: $colname doesnt exist for colnames list.")
+    }    
+    
+    ## Now it will check that the elements number are equal to rown
+
+    my $rown = $self->get_rown();
+    if ($rown != scalar(@{$col_aref})) {
+	croak("ERROR: data supplied to add_coldata dont have same row number");
+    }
+
+    ## With colpos it will replace the elements using the matrix index
+
+    my $data_aref = $self->get_data();
+    my %index = %{$self->_get_indexes()};
+
+    foreach my $i (keys %index) {
+	my ($r, $c) = split(',', $i);
+
+	if ($c == $colpos) {
+	    $data_aref->[$index{$i}] = $col_aref->[$r];
+	}
+    }
+}
+
+
+=head2 set_rowdata
+
+  Usage: $rmatrix->set_rowdata($rowname, \@row_data);
+
+  Desc: Add data to an existing row, overwriting the old data
+ 
+  Ret: None
+
+  Args: $colname, a scalar with the name of the row,
+        $rowdata_aref, an array ref. with the data of the row   
+        
+  Side_Effects: Die if no rowname is used.
+                Die if the number of elements in the data array is different
+                than the column
+
+  Example: $rmatrix->set_rowdata('row1', [1, 2]);
+           $rmatrix->set_rowdata($rownames[0], [1, 2]);
+          
+=cut
+
+sub set_rowdata {
+    my $self = shift;
+    my $rowname = shift ||
+	croak("ERROR: No rowname was supplied to add_rowdata()");
+    
+    my $row_aref = shift ||
+	croak("ERROR: No row data aref. was supplied to add_rowdata()");
+
+    unless(ref($row_aref) eq 'ARRAY') {
+	croak("ERROR: row data aref = $row_aref isnt a ARRAY REF.")
+    }
+
+    ## Check if the colname exists or the colposition, and asign a col. 
+    ## position for the colname.
+    
+    my $rowpos;
+    
+    my @rownames = @{$self->get_rownames()};
+    my $n = 0;
+    foreach my $row (@rownames) {
+	if ($row eq $rowname) {
+	    $rowpos = $n;
+	}
+	$n++;
+    }
+    unless (defined $rowpos) {
+	croak("ERROR: $rowname doesnt exist for rownames list.")
+    }    
+    
+    ## Now it will check that the elements number are equal to coln
+
+    my $coln = $self->get_coln();
+    if ($coln != scalar(@{$row_aref})) {
+	croak("ERROR: data supplied to add_rowdata dont have same col number");
+    }
+
+    ## With colpos it will replace the elements using the matrix index
+
+    my $data_aref = $self->get_data();
+    my %index = %{$self->_get_indexes()};
+
+    foreach my $i (keys %index) {
+	my ($r, $c) = split(',', $i);
+
+	if ($r == $rowpos) {
+	    $data_aref->[$index{$i}] = $row_aref->[$c];
+	}
+    }
+}
 
 
 ####
