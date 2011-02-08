@@ -30,7 +30,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 81;
+use Test::More tests => 85;
 use Test::Exception;
 use Test::Warn;
 
@@ -413,6 +413,68 @@ my $element4C = $matrix0->get_element('C', 4);
 is($element4C, 1, 
     "testing get_element, checking element data")
     or diag("Looks like this has failed");
+
+
+###########################
+## PARSERS AND R.WRITERS ##
+###########################
+
+my $rih = YapRI::Base->new();
+push @rih_objs, $rih;
+
+$matrix0->send_rbase($rih);
+
+my $mtxname = $matrix0->get_name();
+
+$rih->create_block('TRANSPOSE_CMD');
+my $t_cmd0 = 'transp_' . $mtxname . ' <- t(' . $mtxname . ')';
+my $t_cmd1 = 'print(transp_' . $mtxname . ')';
+$rih->add_command($t_cmd0, 'TRANSPOSE_CMD');
+$rih->add_command($t_cmd1, 'TRANSPOSE_CMD');
+$rih->combine_blocks([$mtxname, 'TRANSPOSE_CMD'], 'MTX_TRANS');
+$rih->run_block('MTX_TRANS');
+my $resultfile1 = $rih->get_resultfiles('MTX_TRANS');
+
+## The original matrix is:
+##
+##    4  2  1
+## C  1 98 15
+## A 12  8  1
+##
+## The transpose should be:
+##
+##    C  A =====> By_row ==> @mtx = ('\s+C\s+A',
+## 4  1 12                           '4\s+1\s+12',
+## 2 98  8                           '2\s+98\s+8', 
+## 1 15  1                           '1\s+15\s+1');
+
+my @exp_mtx = ('\s+C\s+A', '4\s+1\s+12', '2\s+98\s+8', '1\s+15\s+1');
+
+my $mtx_match = 0;
+open my $rfh, '<', $resultfile1;
+my $l = 0;
+while(<$rfh>) {
+    chomp($_);
+    if ($_ =~ m/$exp_mtx[$l]/) {
+	$mtx_match++;
+    }
+    $l++;
+}
+
+is($mtx_match, 4, 
+    "testing rbase_matrix, checking results after run the commands")
+    or diag("Looks like this has failed");
+
+throws_ok { $matrix0->send_rbase() } qr/ERROR: No rbase argument/, 
+    'TESTING DIE ERROR when no rbase arg. was supplied to rbase_matrix()';
+
+throws_ok { $matrix0->send_rbase('fake') } qr/ERROR: fake supplied to/, 
+    'TESTING DIE ERROR when rbase arg. supplied to rbase_matrix() isnt rbase';
+
+my $matrix1 = YapRI::Data::Matrix->new();
+
+throws_ok { $matrix1->send_rbase($rih) } qr/ERROR: object YapRI::Data::Matr/, 
+    'TESTING DIE ERROR when object supplied to rbase_matrix() doesnt have data';
 
 
 

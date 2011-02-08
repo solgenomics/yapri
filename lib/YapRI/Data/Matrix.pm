@@ -77,7 +77,7 @@ $VERSION = eval $VERSION;
                             });
      
   my $rbase = YapRI::Base->new();
-  $rmatrix->pass_rbase($rbase);
+  $rmatrix->send_rbase($rbase);
 
    ## Slicers:
 
@@ -626,6 +626,11 @@ sub set_data {
 ## INTERNAL FUNCTIONS ##
 ########################
 
+=head1 (*) INTERNAL FUNCTIONS:
+
+=head2 ---------------------
+
+
 =head2 _get_indexes
 
   Usage: my $index_href = $matrix->_get_indexes();
@@ -779,6 +784,11 @@ sub _index_matrix {
 #####################
 ## DATA FUNCTIONS ###
 #####################
+
+=head1 (*) DATA MANAGEMENT FUNCTIONS:
+
+=head2 ----------------------------
+
 
 =head2 set_coldata
 
@@ -1557,6 +1567,108 @@ sub get_element {
     }
     return $element;
 }
+
+
+###########################
+## PARSERS AND R.WRITERS ##
+###########################
+
+=head1 (*) R. FUNCTIONS:
+
+=head2 ---------------
+
+
+=head2 send_rbase
+
+  Usage: $rmatrix->send_rbase($rbase);
+
+  Desc: Load the matrix data as a block in a rbase object (YapRI::Base)
+        The R matrix name will the same than the perl matrix name.
+ 
+  Ret: None
+
+  Args: $rbase, a YapRI::Base object
+        
+  Side_Effects: Die if no rbase object is used or if the argument used
+                is not a YapRI::Base object
+
+  Example: $rmatrix->send_rbase($rbase);
+          
+=cut
+
+sub send_rbase {
+    my $self = shift;
+    my $rbase = shift ||
+	croak("ERROR: No rbase argument was used for rbase function.");
+
+    if (ref($rbase) ne 'YapRI::Base') {
+	croak("ERROR: $rbase supplied to rbase function isnt YapRI::Base obj.");
+    }
+
+    ## First get the data, and check if there are data
+
+    my @data = @{$self->get_data()};
+
+    unless (scalar(@data) > 0) {
+	croak("ERROR: object $self doesnt have set any data to use rbase().")
+    }
+
+    ## Now it will build the R command to load a matrix
+
+    my $cmd = $self->get_name . ' <- matrix(c(';
+   
+    my @fdata = ();
+    foreach my $dat (@data) {
+	if ($dat =~ m/^\d+$/) {
+	    push @fdata, $dat;
+	}
+	else {
+	    push @fdata, '"' . $dat . '"';  ## if isnt a digit it needs "
+	}
+    }
+
+
+    $cmd .= join(',', @fdata) . '), ';
+    
+    ## add rown, coln and byrow=TRUE
+    
+    $cmd .= 'nrow=' . $self->get_rown() . ', ';
+    $cmd .= 'ncol=' . $self->get_coln() . ', ';
+    $cmd .= 'byrow=TRUE, ';
+
+    ## Finally it will add the row and col names
+
+    $cmd .= 'dimnames=list(c(';
+    
+    ## before it needs to format adding '"'
+    
+    my @frow = ();
+    foreach my $row (@{$self->get_rownames()}) {
+	push @frow, '"' . $row . '"';
+    }
+    $cmd .= join(',', @frow) . '), c(';
+    
+    my @fcol = ();
+    foreach my $col (@{$self->get_colnames()}) {
+	push @fcol, '"' . $col . '"';
+    }
+    $cmd .= join(',', @fcol) . ')))';
+   
+    ## Now it will create the block with the matrix name
+
+    $rbase->create_block($self->get_name());
+    $rbase->add_command($cmd, $self->get_name);
+}
+
+
+
+
+
+
+
+
+
+
 
 
 ####
