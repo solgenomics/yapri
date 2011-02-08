@@ -68,22 +68,17 @@ $VERSION = eval $VERSION;
 
 
   ## Parsers:
-
-  $rmatrix->parse_resultfile({ file     => $filename, 
-                               coln     => $x, 
-                               rown     => $y, 
-                               colnames => 1, 
-                               rownames => 1,
-                            });
      
   my $rbase = YapRI::Base->new();
   $rmatrix->send_rbase($rbase);
+ 
+  $rmatrix = YapRI::Data::Matrix->read_rbase($rbase, $block, $r_object_name);
 
-   ## Slicers:
+  ## Slicers:
 
-   my @col2 = $rmatrix->get_column($col_y);
-   my @row3 = $rmatrix->get_row($row_x);
-   my $elem2_3 = $rmatrix->get_element($row_x, $col_y);
+  my @col2 = $rmatrix->get_column($col_y);
+  my @row3 = $rmatrix->get_row($row_x);
+  my $elem2_3 = $rmatrix->get_element($row_x, $col_y);
 
 
 =head1 DESCRIPTION
@@ -1599,10 +1594,10 @@ sub get_element {
 sub send_rbase {
     my $self = shift;
     my $rbase = shift ||
-	croak("ERROR: No rbase argument was used for rbase function.");
+	croak("ERROR: No rbase argument was used for send_rbase function.");
 
     if (ref($rbase) ne 'YapRI::Base') {
-	croak("ERROR: $rbase supplied to rbase function isnt YapRI::Base obj.");
+	croak("ERROR: $rbase supplied to send_rbase() isnt YapRI::Base obj.");
     }
 
     ## First get the data, and check if there are data
@@ -1615,6 +1610,10 @@ sub send_rbase {
 
     ## Now it will build the R command to load a matrix
 
+    my $mtx_name = $self->get_name;
+    if ($mtx_name !~ m/\w+/) {
+	croak("ERROR: Matrix=$self doesnt have any name to pass to R block");
+    }
     my $cmd = $self->get_name . ' <- matrix(c(';
    
     my @fdata = ();
@@ -1660,7 +1659,191 @@ sub send_rbase {
     $rbase->add_command($cmd, $self->get_name);
 }
 
+=head2 read_rbase
 
+  Usage: my $rmatrix = YapRI::Data::Matrix->read_rbase( $rbase, 
+                                                        $block, 
+                                                        $r_object_name);
+
+  Desc: Create a new block with some R functions to get the data from the
+        matrix. Combine it with the base block, run it and get the resultsfile.
+        Parse the resultfile and get the data from it, loading it in a new
+        matrix object. 
+ 
+  Ret: A new matrix object (YapRI::Data::Matrix)
+
+  Args: $rbase, a YapRI::Base object, 
+        $block, a scalar with the name of the block that contains the R object
+                to be read
+        $r_object_name, name of the r_object to read
+        
+  Side_Effects: Die if no rbase object, block name or r_object_name is used.
+                Die if rbase objects isnt a YapRI::Base object
+                Die if block doesnt exist in the YapRI::Base object
+                Die if the r_object_name doesnt exist in the R block used
+                Die if the r_object_name isnt a matrix object.
+
+  Example:  my $rmatrix = YapRI::Data::Matrix->read_rbase( $rbase, 
+                                                           'BLOCK1', 
+                                                           'mymatrix');
+          
+=cut
+
+sub read_rbase {
+    my $class = shift;
+    my $rbase = shift ||
+	croak("ERROR: No rbase object was supplied to read_rbase() function");
+    my $block = shift ||
+	croak("ERROR: No block name was supplied to read_rbase() function");
+    my $r_obj = shift ||
+	croak("ERROR: No r_object was supplied to read_rbase() function");
+
+    ## Check object identity
+
+    if (ref($rbase) ne 'YapRI::Base') {
+	croak("ERROR: $rbase object supplied to read_rbase() isnt YapRI::Base");
+    }
+
+    ## Check that exists the block used
+
+    my %cmdfiles = %{$rbase->get_cmdfiles()};
+    unless (defined $cmdfiles{$block}) {
+	croak("ERROR: Block=$block doesnt exist for $rbase object.");
+    }
+
+    ## First, check if exist the r_object
+
+    my $rclass = $rbase->r_object_class($block, $r_obj);
+    unless (defined $rclass) {
+	croak("ERROR: $r_obj isnt defined for R block=$block.");
+    }
+    else {
+	unless ($rclass =~ m/matrix/) {
+	    croak("ERROR: $r_obj defined for block=$block isnt a r matrix obj");
+	}
+    }
+
+    ## Second, build the command to catch the matrix object
+
+    my %cmds = (
+	1  => 'print("init_catch_matrix_' . $r_obj . '")',
+	2  => 'print("init_rowcount")',
+	3  => 'length(' . $r_obj . '[,1])',
+	4  => 'print("end_rowcount")',
+	5  => 'print("init_colcount")',
+	6  => 'length(' . $r_obj . '[1,])',
+	7  => 'print("end_colcount")',
+	8  => 'print("init_rownames")',
+	9  => 'rownames(' . $r_obj . ')',
+	10 => 'print("end_rownames")',
+	11 => 'print("init_colnames")',
+	12 => 'colnames(' . $r_obj . ')',
+	13 => 'print("end_colnames")',
+	14 => 'print("init_matrix")',
+	15 => 'c(t(' . $r_obj . '))',   ## R reads the matrix per col, so
+	16 => 'print("end_matrix")',    ## it needs to transpose before read
+	17 => 'print("end_catch_matrix_' . $r_obj . '")',
+	);
+
+    my $mblock = 'CATCH_MATRIX_' . $r_obj;
+    $rbase->create_block($mblock, $block);
+    foreach my $icmd (sort {$a <=> $b} keys %cmds) {
+	$rbase->add_command($cmds{$icmd}, $mblock);
+    }
+
+    ## Run and get the result file
+
+    $rbase->run_block($mblock);
+    my $rfile = $rbase->get_resultfiles($mblock);
+
+    ## Parse the result file and transfer the data to the perl vars.
+
+    my $init = 0;
+
+    my %parinit = (
+	rownames => 0,
+	colnames => 0,
+	rowcount => 0,
+	colcount => 0,
+	matrix   => 0,
+	);
+
+    my %pardata = (
+	rownames => [],
+	colnames => [],
+	rowcount => [],
+	colcount => [],
+	matrix   => [],
+	);
+
+    open my $rfh, '<', $rfile;
+    while(<$rfh>) {
+	chomp($_);
+	if ($_ =~ m/"end_catch_matrix_$r_obj"/) {
+	    $init = 0;
+	}
+
+	if ($init == 1) {
+	   
+	    ## Just remove [\d] at the beginning of each line and remove
+	    ## extra spaces
+	    $_ =~ s/^\s*\[\d+\]\s+//;
+	    $_ =~ s/\s+/ /g;
+	    
+	    ## Check all the parser initiations for each class
+	    foreach my $class_init (keys %parinit) {
+		
+		if ($_ =~ m/"end_$class_init"/) {
+		    $parinit{$class_init} = 0;
+		}
+		if ($parinit{$class_init} == 1) {
+		    
+		    ## Also it will add an extra " for each " for words
+		    $_ =~ s/"/""/g;
+		    $_ =~ s/^\s*""/"/g;
+		    $_ =~ s/""\s*$/"/g;
+
+		    if ($_ !~ m/NULL/) {
+			
+			## Check if they are digits or words
+			my @data = split(/"\s"/, $_);
+			foreach my $data (@data) {
+
+			    if ($data =~ m/^"(.+)"$/) {
+				push @{$pardata{$class_init}}, $1;
+			    }
+			    else {
+				my @subdata = split(/\s/, $data);
+				push @{$pardata{$class_init}}, @subdata;
+			    }
+			} 
+		    }
+		}
+		if ($_ =~ m/"init_$class_init"/) {
+		    $parinit{$class_init} = 1;
+		}
+	    }
+	}
+
+	if ($_ =~ m/"init_catch_matrix_$r_obj"/) {
+	    $init = 1;
+	}
+    }
+
+    ## everything should be parsed, now it will create a new 
+    ## YapRI::Data::Matrix object 
+    
+    my $matrix = $class->new({ 
+	name     => $r_obj,
+	rown     => $pardata{rowcount}->[0],
+	coln     => $pardata{colcount}->[0],
+	rownames => $pardata{rownames},
+	colnames => $pardata{colnames},
+	data     => $pardata{matrix},
+			     });
+
+    return $matrix;
+}
 
 
 

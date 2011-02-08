@@ -30,7 +30,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 85;
+use Test::More tests => 97;
 use Test::Exception;
 use Test::Warn;
 
@@ -419,6 +419,8 @@ is($element4C, 1,
 ## PARSERS AND R.WRITERS ##
 ###########################
 
+## send_rbase, TEST 82 to 86
+
 my $rih = YapRI::Base->new();
 push @rih_objs, $rih;
 
@@ -462,19 +464,92 @@ while(<$rfh>) {
 }
 
 is($mtx_match, 4, 
-    "testing rbase_matrix, checking results after run the commands")
+    "testing send_rbase, checking results after run the commands")
     or diag("Looks like this has failed");
 
 throws_ok { $matrix0->send_rbase() } qr/ERROR: No rbase argument/, 
-    'TESTING DIE ERROR when no rbase arg. was supplied to rbase_matrix()';
+    'TESTING DIE ERROR when no rbase arg. was supplied to send_rbase()';
 
 throws_ok { $matrix0->send_rbase('fake') } qr/ERROR: fake supplied to/, 
-    'TESTING DIE ERROR when rbase arg. supplied to rbase_matrix() isnt rbase';
+    'TESTING DIE ERROR when rbase arg. supplied to send_rbase() isnt rbase';
 
 my $matrix1 = YapRI::Data::Matrix->new();
 
 throws_ok { $matrix1->send_rbase($rih) } qr/ERROR: object YapRI::Data::Matr/, 
-    'TESTING DIE ERROR when object supplied to rbase_matrix() doesnt have data';
+    'TESTING DIE ERROR when object supplied to send_rbase() doesnt have data';
+
+$matrix1->set_coln(2);
+$matrix1->set_rown(2);
+$matrix1->set_data([1, 2, 3, 4]);
+
+throws_ok { $matrix1->send_rbase($rih) } qr/ERROR: Matrix=YapRI::Data::Matr/, 
+    'TESTING DIE ERROR when object supplied to send_rbase() doesnt have name';
+
+
+## Check read_rbase, TEST 87 to 97
+
+my $matrix2 = YapRI::Data::Matrix->read_rbase( $rih, 
+					       'MTX_TRANS', 
+					       'transp_' . $mtxname);
+my @data2 = @{$matrix2->get_data()};
+
+is(join(',', @data2), '1,12,98,8,15,1',
+    "testing read_rbase, checking matrix data")
+    or diag("Looks like this has failed");
+
+is(join(',', @{$matrix2->get_colnames()}), 'C,A', 
+   "testing read_rbase, checking colnames")
+   or diag("Looks like this has failed");
+
+is(join(',', @{$matrix2->get_rownames()}), '4,2,1', 
+   "testing read_rbase, checking rownames")
+   or diag("Looks like this has failed");
+
+throws_ok { YapRI::Data::Matrix->read_rbase() } qr/ERROR: No rbase/, 
+    'TESTING DIE ERROR when no rbase arg. was supplied to read_base()';
+
+throws_ok { YapRI::Data::Matrix->read_rbase($rih) } qr/ERROR: No block name/, 
+    'TESTING DIE ERROR when no block arg. was supplied to read_base()';
+
+throws_ok { YapRI::Data::Matrix->read_rbase($rih, 'MTX_TRANS') } qr/ROR: No r/, 
+    'TESTING DIE ERROR when no r_object arg. was supplied to read_base()';
+
+throws_ok { YapRI::Data::Matrix->read_rbase(1, 'MTX_TRANS', 't') } qr/: 1 obj/, 
+    'TESTING DIE ERROR when rbase arg. supplied to read_base() isnt r_base';
+
+throws_ok { YapRI::Data::Matrix->read_rbase($rih, 'fake', 't') } qr/: Block=f/, 
+    'TESTING DIE ERROR when block arg. supplied to read_base() doesnt exist';
+
+throws_ok { YapRI::Data::Matrix->read_rbase($rih, 'MTX_TRANS', 'fake_obj') } 
+   qr/ERROR: fake_obj isnt /, 
+    'TESTING DIE ERROR when r_obj supplied to read_base() isnt defined in R';
+
+$rih->add_command('no_mtx <- c(1)', 'MTX_TRANS');
+
+throws_ok { YapRI::Data::Matrix->read_rbase($rih, 'MTX_TRANS', 'no_mtx') } 
+   qr/ERROR: no_mtx defined /, 
+    'TESTING DIE ERROR when r_obj supplied to read_base() isnt R matrix';
+
+
+## read_ebase with an matrix object without names and with numbers and
+## words as elements
+
+my $matrix3 = YapRI::Data::Matrix->new({ 
+    name => 'mixmatrix',
+    rown => 2, 
+    coln => 3,
+    data => [1, 2, 'Yes', 3, 4, 'No'],
+				  });
+
+my $rih2 = YapRI::Base->new();
+push @rih_objs, $rih2;
+
+$matrix3->send_rbase($rih2);
+my $matrix4 = YapRI::Data::Matrix->read_rbase($rih2, 'mixmatrix', 'mixmatrix');
+
+is(join(',', @{$matrix4->get_data()}), '1,2,Yes,3,4,No',
+    "testing read_rbase for mixed element matrices, checking data")
+    or diag("Looks like something has failed");
 
 
 
