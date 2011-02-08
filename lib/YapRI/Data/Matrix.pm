@@ -81,7 +81,7 @@ $VERSION = eval $VERSION;
 
    ## Slicers:
 
-   my @col2 = $rmatrix->get_col($col_y);
+   my @col2 = $rmatrix->get_column($col_y);
    my @row3 = $rmatrix->get_row($row_x);
    my $elem2_3 = $rmatrix->get_element($row_x, $col_y);
 
@@ -1396,6 +1396,168 @@ sub change_rows {
 	$self->get_rownames()->[$old_idx] = $changed{$chname};
     } 
 }
+
+
+#############
+## SLICERS ##
+#############
+
+=head2 get_column
+
+  Usage: my @column = $rmatrix->get_column($colname);
+
+  Desc: Get the column data for a concrete columnname
+ 
+  Ret: @column, an array with the column data
+
+  Args: $colname, a scalar with the column name
+        
+  Side_Effects: return an empty array if the column doesnt exist
+
+  Example: my @column2 = $rmatrix->get_column('column2');
+          
+=cut
+
+sub get_column {
+    my $self = shift;
+    my $colname = shift || '';
+
+    ## Get the index
+
+    my @colnames = @{$self->get_colnames()};
+    my $ci;
+    my $a = 0;
+    foreach my $col (@colnames) {
+	if ($col eq $colname) {
+	    $ci = $a;
+	}
+	$a++;
+    }
+
+    ## Catch the data based in the index, and push into an array
+
+    my @column_data = ();
+
+    if (defined $ci) {
+	my %revindex = %{$self->_get_rev_indexes()};
+	my @data = @{$self->get_data()};
+	my $n = 0;
+	foreach my $data (@data) {
+	    my ($r, $c) = @{$revindex{$n}};
+	    if ($c == $ci) {
+		push @column_data, $data;
+	    }
+	    $n++;
+	}
+    }
+    return @column_data;
+}
+
+=head2 get_row
+
+  Usage: my @row = $rmatrix->get_row($rowname);
+
+  Desc: Get the row data for a concrete rowname
+ 
+  Ret: @row, an array with the row data
+
+  Args: $rowname, a scalar with the row name
+        
+  Side_Effects: return an empty array if the row doesnt exist
+
+  Example: my @row3 = $rmatrix->get_row('row3');
+          
+=cut
+
+sub get_row {
+    my $self = shift;
+    my $rowname = shift || '';
+
+    ## Get the index
+
+    my @rownames = @{$self->get_rownames()};
+    my $ri;
+    my $a = 0;
+    foreach my $row (@rownames) {
+	if ($row eq $rowname) {
+	    $ri = $a;
+	}
+	$a++;
+    }
+
+    ## Catch the data based in the index, and push into an array
+
+    my @row_data = ();
+
+    if (defined $ri) {
+	my %revindex = %{$self->_get_rev_indexes()};
+	my @data = @{$self->get_data()};
+	my $n = 0;
+	foreach my $data (@data) {
+	    my ($r, $c) = @{$revindex{$n}};
+	    if ($r == $ri) {
+		push @row_data, $data;
+	    }
+	    $n++;
+	}
+    }
+    return @row_data;
+}
+
+=head2 get_element
+
+  Usage: my $element = $rmatrix->get_element($rowname, $colname);
+
+  Desc: Get the matrix element for concrete $rowname, $colname pair
+ 
+  Ret: $element, a scalar with the element value
+
+  Args: $rowname, a scalar with the row name
+        $colname, a scalar with the column name
+        
+  Side_Effects: return undef if the row or/and column doesnt exist
+
+  Example: my $element = $rmatrix->get_element($rowname, $colname);
+          
+=cut
+
+sub get_element {
+    my $self = shift;
+    my $rowname = shift || '';
+    my $colname = shift || '';
+
+    my $element;
+    my %selindex = ( row => '', col => '');
+    my %el_index = ( row => $rowname, 
+		     col => $colname );
+    my %el_names = ( row => $self->get_rownames(), 
+		     col => $self->get_colnames());
+
+    ## Catch the indexes
+    
+    foreach my $idx (keys %el_index) {
+	my $i = 0;
+	my @names = @{$el_names{$idx}};
+	foreach my $name (@names) {
+	    if ($name eq $el_index{$idx}) {
+		$selindex{$idx} = $i;
+	    }
+	    $i++;
+	}
+    }
+
+    ## Get the data index
+
+    my %index = %{$self->_get_indexes()};
+    my $data_idx = $index{$selindex{row} . ',' . $selindex{col}};
+    
+    if (defined $data_idx) {
+	my @data = @{$self->get_data()};
+	$element = $data[$data_idx];
+    }
+    return $element;
+}
+
 
 ####
 1; #

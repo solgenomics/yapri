@@ -30,7 +30,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 78;
+use Test::More tests => 81;
 use Test::Exception;
 use Test::Warn;
 
@@ -388,6 +388,31 @@ throws_ok { $matrix0->change_rows('C') } qr/ERROR: no rowname2 arg./,
 throws_ok { $matrix0->change_rows('fake', 'C') } qr/ERROR: one or two/, 
     'TESTING DIE ERROR when rowname supplied to change_rows() doesnt exist';
 
+
+#############
+## SLICERS ##
+#############
+
+## get_column, TEST 79
+
+my @coldata4 = $matrix0->get_column(4);
+is(join(',', @coldata4), '1,12', 
+    "testing get_column, checking column data")
+    or diag("Looks like this has failed");
+
+## get_row, TEST 80
+
+my @rowdataC = $matrix0->get_row('C');
+is(join(',', @rowdataC), '1,98,15', 
+    "testing get_row, checking row data")
+    or diag("Looks like this has failed");
+
+## get_element, TEST 81
+
+my $element4C = $matrix0->get_element('C', 4);
+is($element4C, 1, 
+    "testing get_element, checking element data")
+    or diag("Looks like this has failed");
 
 
 
