@@ -57,10 +57,22 @@ store all of them as variables in this object.
   my $resultfile2 = $rih->get_resultfiles('BLOCK2'); 
 
 
-  From here there is a plan to create other modules that interact with this 
-module to do more easy an intuitive its use. For example, create the module
-YapRI::Graph, with the following functionality:
+ Example of a module that uses YapRI::Base, and YapRI::Data::Matrix to
+ calculate the transpose of the matrix
 
-  my $rGraph = YapRI::Graph->new('bmp');
-  $rGraph->plot($data);
+ my $matrix = YapRI::Data::Matrix( { 
+              name => 'matrix1', 
+              rown => 3,
+	      coln => 4, 
+`	      rownames => ['A', 'B', 'C'],
+              colnames => ['alpha', 'beta', 'gamma', 'delta'],
+	      data => [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+              });
 
+ my $rih2 = YapRI::Base->new();
+ $matrix->send_rbase($rih2);
+ 
+ $rih2->create_block('TRMATRIX', $matrix->get_name());
+ $rih2->add_command('trmatrix1 <- t('.$matrix->get_name().')', 'TRMATRIX');
+ $rih2->run_block('TRMATRIX');    
+ my $trmatrix = YapRI::Data::Matrix->read_rbase($rih2, 'TRMATRIX', 'trmatrix1');
