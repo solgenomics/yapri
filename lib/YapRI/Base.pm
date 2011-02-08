@@ -1228,6 +1228,100 @@ sub run_block {
     $self->run_command({ alias => $alias });
 }
 
+
+#######################
+## R. OBJECT METHODS ##
+#######################
+
+=head2 r_object_class
+
+  Usage: my $class = $rih->r_object_class($block, $r_object); 
+
+  Desc: Check if exists a r_object in the specified R block. Return 
+        undef if the object doesnt exist or the class of the object 
+
+  Ret: $class, a scalar with the class of the r_object
+
+  Args: $block, a scalar, YapRI::Base block
+        $r_object, name of the R object 
+
+  Side_Effects: Die if the base alias used doesnt exist or doesnt have cmdfile
+
+  Example: my $class = $rih->r_object_class('BLOCK1', 'mtx');
+
+=cut
+
+sub r_object_class {
+    my $self = shift;
+    my $block = shift ||
+	croak("ERROR: No block name was supplied to r_object_class()");
+    my $r_obj = shift ||
+	croak("ERROR: No r_object was supplied to r_object_class()");
+
+    ## Check if exist the block (alias) used
+
+    my %cmdfiles = %{$self->get_cmdfiles()};
+    unless (defined $cmdfiles{$block}) {
+	croak("ERROR: block=$block (alias) doesnt exist for $self object");
+    }
+
+    ## Define the class var.
+
+    my $class;
+
+    ## If exist it will create a new block to check the r_object
+
+    my $cblock = 'CHECK_rOBJ_' . $r_obj;
+    $self->create_block($cblock, $block);
+    
+    ## Add the commands and run it
+    ## It will run the conditional if(exists("myobject")) before to skip
+    ## the error... if doesnt exist, it just will not run class
+
+    $self->add_command('print("init_object_checking_' . $r_obj . '")', $cblock);
+    $self->add_command('if(exists("'.$r_obj.'"))class('.$r_obj.')', $cblock);
+    $self->add_command('print("end_object_checking_' . $r_obj . '")', $cblock);
+    
+    $self->run_block($cblock);
+
+    ## Open the result file and parse it
+
+    my $resultfile = $self->get_resultfiles($cblock);
+    open my $rfh, '<', $resultfile;
+
+    my $init = 0;
+    while (<$rfh>) {
+	chomp($_);
+	
+	## First, disable init as soon as it read it
+	if ($_ =~ /end_object_checking_$r_obj/) {
+	    $init = 0;
+	}
+	
+        ## Second, catch the data only if init is enable
+	if ($init == 1) {
+	    if ($_ =~ m/\[1\]\s+"(.+)"/) {
+		$class = $1;
+	    }
+	}
+
+	## Third, enable the init at the end of the line parse
+	if ($_ =~ /init_object_checking_$r_obj/) {
+	    $init = 1;
+	}
+	
+	
+    }
+    close($rfh);
+
+    return $class;
+}
+
+
+
+
+
+
 ####
 1; #
 ####

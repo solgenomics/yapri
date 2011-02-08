@@ -31,7 +31,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 91;
+use Test::More tests => 96;
 use Test::Exception;
 use Test::Warn;
 
@@ -682,6 +682,37 @@ throws_ok  { $rih3->combine_blocks('test', 'fake') } qr/ERROR: test used/,
 
 throws_ok  { $rih3->combine_blocks(['test'], 'fake') } qr/ERROR: alias=test/, 
     'TESTING DIE ERROR when block aref. arg. used combine_blocks() isnt AR.REF';
+
+
+## Check objects identity, TEST 92 to 96
+
+my $rih4 = YapRI::Base->new();
+push @rih_objs, $rih4;
+
+$rih4->create_block('ROBJ1');
+my $robj_cmd = "ROBJ1 <- matrix(c(1:81), nrow=9, ncol=9, byrow=TRUE)";
+$rih4->add_command($robj_cmd, 'ROBJ1');
+
+my $robj_class1 = $rih4->r_object_class('ROBJ1', 'ROBJ1');
+
+is($robj_class1, 'matrix', 
+    "testing r_object_class, checking object class")
+    or diag("Looks like this has failed");
+
+my $robj_class2 = $rih4->r_object_class('ROBJ1', 'fake');
+
+is($robj_class2, undef, 
+    "testing r_object_class for a non-existing object, checking undef")
+    or diag("Looks like this has failed");
+
+throws_ok  { $rih4->r_object_class() } qr/ERROR: No block name/, 
+    'TESTING DIE ERROR when no block name was used with r_object_class()';
+
+throws_ok  { $rih4->r_object_class('BLOCK1') } qr/ERROR: No r_object/, 
+    'TESTING DIE ERROR when no r_object was used with r_object_class()';
+
+throws_ok  { $rih4->r_object_class('fake', 'x') } qr/ERROR: block=fake/, 
+    'TESTING DIE ERROR when block supplied to r_object_class() doesnt exist';
 
 
 ##############################################################
