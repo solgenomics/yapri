@@ -30,7 +30,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 46;
+use Test::More tests => 55;
 use Test::Exception;
 use Test::Warn;
 
@@ -39,18 +39,19 @@ use Cwd;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 
-## TEST 1 and 2
+## TEST 1 and 3
 
 BEGIN {
     use_ok('YapRI::Graph::Simple');
-    use_ok('YapRI::Base')
+    use_ok('YapRI::Base');
+    use_ok('YapRI::Data::Matrix');
 }
 
 ## Add the object created to an array to clean them at the end of the script
 
 my @rih_objs = ();
 
-## First, create the empty object and check it, TEST 3 to 6
+## First, create the empty object and check it, TEST 4 to 7
 
 my %empty_args = (
     rbase      => '',
@@ -90,7 +91,10 @@ my $rbase0 = YapRI::Base->new();
 push @rih_objs, $rbase0;
 
 my $devargs0 = { width => 150, height => 200, units => 'px' };
-my $grparams0 = { bg => "white" };
+my $grparams0 = { bg  => "transparent", 
+		  cex => 1, 
+		  lab => [5, 5, 7], 
+		  xpd => 'FALSE' };
 my $sgrargs0 = { type => "p", main => "title" };
 my $gritems0 = [ { func => 'points',
                    data => [10, 20],
@@ -114,7 +118,7 @@ my @acsors = (
     [ 'datamatrix', $rmatrix0  ],
     );
 
-## Run the common checkings, TEST 7 to 24
+## Run the common checkings, TEST 8 to 25
 
 foreach my $accs (@acsors) {
     my $func = $accs->[0];
@@ -130,7 +134,7 @@ foreach my $accs (@acsors) {
     "TESTING DIE ERROR when no args. were supplied to $setfunc function";
 }
 
-## Check die for specific accessors, TEST 25 to 46
+## Check die for specific accessors, TEST 26 to 47
 
 throws_ok { $rgraph0->set_rbase('fake')} qr/ERROR: fake obj./, 
     "TESTING DIE ERROR when arg supplied to set_rbase isnt YapRI::Base";
@@ -208,6 +212,60 @@ throws_ok { $rgraph0->set_gritems([{ func => 'axis',
 
 throws_ok { $rgraph0->set_datamatrix('fake')} qr/ERROR: fake supplied/, 
     "TESTING DIE ERROR when arg supp. set_datamatrix isnt YapRI::Data::Matrix";
+
+
+########################
+## INTERNAL FUNCTIONS ##
+########################
+
+## Test _no_empty, TEST 48 to 53
+
+my @noempty = qw/ rbase datamatrix grfile device sgraph/;
+
+foreach my $noem (@noempty) {
+    my $nogetfunc = 'get_' . $noem;
+    my $nosetfunc = 'set_' . $noem;
+    my $nocat = $rgraph0->$nogetfunc();   ## get the accessor
+    $rgraph0->$nosetfunc('');             ## replace by empty value
+    
+    throws_ok { $rgraph0->_no_empty()} qr/ERROR: $noem accessor is empty/, 
+    "TESTING DIE ERROR when requested accessor is empty for _no_empty ($noem)";
+
+    $rgraph0->$nosetfunc($nocat);         ## restore the original data
+}
+
+## Extra check, the matrix should have 0 data
+
+throws_ok { $rgraph0->_no_empty()} qr/ERROR: datamatrix object/, 
+    "TESTING DIE ERROR when datamatrix has 0 data for _no_empty";
+
+
+## To continue it will add data to the matrix0
+
+$rmatrix0->set_name('fruit_exp1');
+$rmatrix0->set_coln(3);
+$rmatrix0->set_rown(10);
+$rmatrix0->set_colnames(['mass', 'length', 'width']);
+$rmatrix0->set_rownames(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']);
+$rmatrix0->set_data( [ 120, 23, 12, 126, 24, 19, 154, 28, 18, 109, 28, 24,
+		      98, 19, 10, 201, 17, 37, 165, 29, 34, 178, 15, 25,
+		      139, 11, 32, 78, 13, 23 ] );
+
+## Check _device_cmd
+
+my $exp_devcmd = 'bmp(filename="filetest", height=200, units="px", width=150)';
+is($rgraph0->_device_cmd(), $exp_devcmd, 
+   "testing _device_cmd, command constructor, checking command line")
+    or diag("Looks like this has failed");
+
+## Check _par_cmd
+
+my $exp_parcmd = 'par(bg="transparent", cex=1, lab=c(5, 5, 7), xpd=FALSE)';
+is($rgraph0->_par_cmd(), $exp_parcmd, 
+   "testing _par_cmd, command constructor, checking command line")
+    or diag("Looks like this has failed");
+
+
 
 
 ############################

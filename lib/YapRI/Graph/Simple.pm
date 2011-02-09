@@ -795,12 +795,205 @@ sub set_datamatrix {
 }
 
 
+###################
+## GRAPH METHODS ##
+###################
 
 
+=head2 _no_empty
+
+  Usage: $rgraph->_no_empty($err_message);
+
+  Desc: Check if all the accessors requested for build_graph contains data
+
+  Ret: None
+
+  Args: $err_message to add to the die message
+
+  Side_Effects: Die if some of the requested accessors are empty
+
+  Example: $rgraph->_no_empty();
+              
+=cut
+
+sub _no_empty {
+    my $self = shift;
+    my $err = shift || '';
+    
+    ## Request checkings
+    
+    my @reqs = ('rbase', 'datamatrix', 'grfile', 'device', 'sgraph');
+    foreach my $req (@reqs) {
+	my $function = 'get_' . $req;
+	my $elem = $self->$function();
+	unless ($elem =~ m/./) {
+	    croak("ERROR: $req accessor is empty. $err");
+	}
+    }
+
+    ## As extra it will check the data in the matrix
+
+    my $data_aref = $self->get_datamatrix()->get_data();
+    unless (scalar(@{$data_aref}) > 0) {
+	croak("ERROR: datamatrix object doesnt contain data. ");
+    }
+}
+
+=head2 _device_cmd
+
+  Usage: my $cmd = $rgraph->_device_cmd();
+
+  Desc: Build the device command
+
+  Ret: $cmd, a string with the device command
+
+  Args: None
+
+  Side_Effects: None
+
+  Example: my $cmd = $rgraph->_device_cmd();
+              
+=cut
+
+sub _device_cmd {
+    my $self = shift;
+    
+    my $device = $self->get_device();
+    my $grfile = $self->get_grfile();
+
+    my $dev_cmd = $device . '(filename="' . $grfile . '"';
+    
+    my %devargs = %{$self->get_devargs()};
+    foreach my $deva (sort keys %devargs) {
+	
+	$dev_cmd .= ', ' . $deva;
+	if (defined $devargs{$deva}) {
+	    
+	    if ($devargs{$deva} =~ m/^\d+$/) {
+		$dev_cmd .= '=' . $devargs{$deva};
+	    }
+	    else {
+		$dev_cmd .= '="' . $devargs{$deva} . '"';
+	    }
+	}
+    }
+    $dev_cmd .= ')';
+
+    return $dev_cmd;
+}
 
 
+=head2 _device_cmd
+
+  Usage: my $cmd = $rgraph->_device_cmd();
+
+  Desc: Build the device command
+
+  Ret: $cmd, a string with the device command
+
+  Args: None
+
+  Side_Effects: None
+
+  Example: my $cmd = $rgraph->_device_cmd();
+              
+=cut
+
+sub _par_cmd {
+    my $self = shift;
+    
+    my %parargs = %{$self->get_grparams()};
+
+    my $cmd = '';
+
+    if (scalar(keys %parargs)) {  ## Only if it has some graphical parameters
+	
+	$cmd = 'par(';  ## Init the command
+    
+	my @args = ();
+	foreach my $par (sort keys %parargs) {
+	    my $subcmd = $par;
+	    if (defined $parargs{$par}) {
+		if (ref($parargs{$par}) eq 'ARRAY') {
+		    my @subarr = ();
+		    foreach my $ve (@{$parargs{$par}}) {
+			if ($ve =~ m/^(\d+|FALSE|TRUE)$/) {
+			    push @subarr, $ve;
+			}
+			else {
+			     push @subarr, '"' . $ve . '"';
+			}
+		    }
+		    $subcmd .= '=c(' . join(', ', @subarr) . ')';
+		}
+		elsif ($parargs{$par} =~ m/^(\d+|FALSE|TRUE)$/) {
+		    $subcmd .= '=' . $parargs{$par};
+		}
+		else {
+		    $subcmd .= '="' . $parargs{$par} .'"';
+		}
+	    }
+	    push @args, $subcmd;
+	}
+	$cmd .= join(', ', @args);  ## add the different args 
+    
+	$cmd .= ')';   ## End the command
+    }
+
+    return $cmd;
+}
 
 
+=head2 build_graph
+
+  Usage: my $filegraph = $rgraph->build_graph();
+
+  Desc: Create some YapRI blocks and run them to create the graph, 
+        in the following order:
+          1) create 'matrix' (datamatrix)
+          2) init 'device' (device)
+          3) pass 'par' graphical parameters (grparams)
+          4) matrix conversions to high-level plotting commands
+          5) execute high-level plotting command (sgraph)
+          6) matrix concersions to low-level plotting commands
+          7) execute low-level plotting commands (gritems)
+
+  Ret: $filegraph, the name of the graph file 
+
+  Args: None
+
+  Side_Effects: Die if some of the accessors are empty
+
+  Example: my $filegraph = $rgraph->build_graph();
+              
+=cut
+
+sub build_graph {
+    my $self = shift;
+
+
+    ## Check requested accessors
+
+    $self->_no_empty('Aborting build_graph().');
+
+    ## 1) The block will have the name of the matrix
+
+    my $rbase = $self->get_rbase();
+    my $mtx = $self->get_datamatrix();
+
+    my $block1 = $mtx->get_name();
+    $mtx->send_rbase($rbase);
+
+    ## 2) Build the command to init the device and add to the block
+
+    my $dev_cmd = $self->_device_cmd();
+    $rbase->add_command($dev_cmd, $block1);
+
+    ## 3) Build the command with the graphical parameters
+
+    my $par_cmd = $self->_par_cmd();
+
+}
 
 
 
