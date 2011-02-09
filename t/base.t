@@ -31,7 +31,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 103;
+use Test::More tests => 104;
 use Test::Exception;
 use Test::Warn;
 
@@ -715,15 +715,25 @@ throws_ok  { $rih4->r_object_class('fake', 'x') } qr/ERROR: block=fake/,
     'TESTING DIE ERROR when block supplied to r_object_class() doesnt exist';
 
 
-## Check r_function_args, TEST 97 to 103
+## Check r_function_args, TEST 97 to 104
 
 my %plot_args1 = $rih4->r_function_args('plot');
 
 is(scalar(keys %plot_args1), 16, 
-    "testing r_function_args for 'plot', checking number of args (16)")
+    "testing r_function_args for 'plot', checking args (16)")
     or diag("Looks like this has failed");
 
-my %plot_args2 = $rih4->r_function_args('fakeRfunction');
+my %plot_args2 = $rih4->r_function_args('bmp');
+
+is(scalar(keys %plot_args2), 11, 
+    "testing r_function_args for a 'bmp' function, checking args (11)")
+    or diag("Looks like this has failed");
+
+my %plot_args3 = $rih4->r_function_args('fakeRfunction');
+
+is(scalar(keys %plot_args3), 0, 
+    "testing r_function_args for a fake function, checking number args (0)")
+    or diag("Looks like this has failed");
 
 my %cmdfiles_fc = %{$rih4->get_cmdfiles()};
 my %resfiles_fc = %{$rih4->get_resultfiles()};
@@ -744,9 +754,7 @@ is($resfiles_fc{GETARGSR_plot_2}, undef,
     "testing r_function_args for 'plot', checking deletion of res blocks (2)")
     or diag("Looks like this has failed");
 
-is(scalar(keys %plot_args2), 0, 
-    "testing r_function_args for a fake function, checking number of args (0)")
-    or diag("Looks like this has failed");
+
 
 throws_ok  { $rih4->r_function_args() } qr/ERROR: No R function/, 
     'TESTING DIE ERROR when no function arg. was supplied to r_function_args()';

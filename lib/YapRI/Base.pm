@@ -1330,7 +1330,7 @@ sub r_object_class {
 
   Side_Effects: Die if no R function argument is used
                 Return empty hash if the function doesnt exist
-                If the argument doesnt have any value, add <function.input.data
+                If the argument doesnt have any value, add <without.value>
 
   Example: my %plot_args = $rih->r_function_args('plot')
 
@@ -1372,7 +1372,13 @@ sub r_function_args {
 
     if (defined $env) {
 
-	my $arg_cmd = 'args(' . $env . '::' . $func . '.default)';
+	## Build the command as a conditional to get args for non default
+	## objects
+
+	my $arg_cmd = 'if( exists("' . $func . '.default")) ';
+	$arg_cmd .= 'args(' . $func . '.default)';
+	$arg_cmd .= 'else args(' . $func .')';
+
 	$self->add_command($arg_cmd, $block2);
 	$self->run_block($block2);
 	my $rfile2 = $self->get_resultfiles($block2);
@@ -1390,7 +1396,8 @@ sub r_function_args {
 	
 	## Parse the line
 	$fline =~ s/^function\s*\(\s*//;            ## Remove the head
-	$fline =~ s/,\s?\.*\s*\)\s*NULL$//;         ## Remove the tail
+	$fline =~ s/,\s?\.*//;                      ## Remove three dots
+	$fline =~ s/\s*\)\s*NULL$//;                ## Remove the tail
 	
 	my @fpargs = split(/,/, $fline);
 	foreach my $fparg (@fpargs) {
@@ -1399,7 +1406,7 @@ sub r_function_args {
 		$fargs{$1} = $2;
 	    }
 	    else {
-		$fargs{$fparg} = '<function.input.data';
+		$fargs{$fparg} = '<without.value>';
 	    }
 	}
     }
