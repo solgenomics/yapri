@@ -1396,14 +1396,25 @@ sub r_function_args {
 	
 	## Parse the line
 	$fline =~ s/^function\s*\(\s*//;            ## Remove the head
-	$fline =~ s/,\s?\.*//;                      ## Remove three dots
+	$fline =~ s/,\s*?\.{1,3}//;                 ## Remove three dots
 	$fline =~ s/\s*\)\s*NULL$//;                ## Remove the tail
+	$fline =~ s/\s*=\s*/=/g;                    ## Remove the spaces 
+                                                    ## rounding '='
+
+	## keep the array data together, and replace for a tag
+	$fline =~ s/c\(.+?\)/<data.vector>/g;
+	$fline =~ s/".*?"/<data.scalar.character>/g;
 	
 	my @fpargs = split(/,/, $fline);
 	foreach my $fparg (@fpargs) {
 	    $fparg =~ s/^\s+//;
 	    if ($fparg =~ m/^(.+)=(.+)$/) {
-		$fargs{$1} = $2;
+		my $k = $1;
+		$fargs{$k} = $2;
+		if ($fargs{$k} =~ m/^\d+$/) {
+		    $fargs{$k} = '<data.scalar.numeric>';
+		}
+		
 	    }
 	    else {
 		$fargs{$fparg} = '<without.value>';

@@ -725,7 +725,7 @@ is(scalar(keys %plot_args1), 16,
 
 my %plot_args2 = $rih4->r_function_args('bmp');
 
-is(scalar(keys %plot_args2), 11, 
+is(scalar(keys %plot_args2), 9, 
     "testing r_function_args for a 'bmp' function, checking args (11)")
     or diag("Looks like this has failed");
 
