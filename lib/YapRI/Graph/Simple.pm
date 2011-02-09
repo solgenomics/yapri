@@ -9,6 +9,7 @@ use Carp qw| croak cluck |;
 use String::Random qw/ random_regex random_string/;
 
 use YapRI::Base;
+use YapRI::Data::Matrix;
 
 
 ###############
@@ -76,7 +77,8 @@ The following class methods are implemented:
         sgraph  => a scalar, a R high-level plotting command (example: hist)
         sgrargs => a hash ref. with R plot function args.
         gritems => a hash ref. with key=R low-level plotting command and
-                                    val=hash ref. with args. for that command. 
+                                    val=hash ref. with args. for that command.
+        datamatrix => A YapRI::Data::Matrix object 
         
         
   Side_Effects: Die if the argument used is not a hash or its values arent 
@@ -95,14 +97,15 @@ sub new {
     my $self = bless( {}, $class ); 
 
     my %permargs = (
-	rbase    => 'YapRI::Base',
-	grfile   => '\w+',
-	device   => '\w+',
-	devargs  => {},
-	grparams => {},
-	sgraph   => '\w+',
-	sgrargs  => {},
-	gritems  => [],
+	rbase      => 'YapRI::Base',
+	grfile     => '\w+',
+	device     => '\w+',
+	devargs    => {},
+	grparams   => {},
+	sgraph     => '\w+',
+	sgrargs    => {},
+	gritems    => [],
+	datamatrix => 'YapRI::Data::Matrix',
 	);
 
     ## Check variables.
@@ -135,13 +138,14 @@ sub new {
     }
 
     my %defargs = ( 
-	1 => [ 'grfile',   'grfile_' . random_regex('\w\w\w\w\w\w') ],
-	2 => [ 'device',   'bmp' ],
-	3 => [ 'devargs',  { width => 600, height => 600, units => "px" } ],
-	4 => [ 'grparams', {} ],
-	5 => [ 'sgraph',   'barplot' ],
-	6 => [ 'sgrargs',  {} ],
-	7 => [ 'gritems',  [] ],
+	1 => [ 'grfile',     'grfile_' . random_regex('\w\w\w\w\w\w')       ],
+	2 => [ 'device',     'bmp'                                          ],
+	3 => [ 'devargs',    { width => 600, height => 600, units => "px" } ],
+	4 => [ 'grparams',   {}                                             ],
+	5 => [ 'sgraph',     'barplot'                                      ],
+	6 => [ 'sgrargs',    {}                                             ],
+	7 => [ 'gritems',    []                                             ],
+        8 => [ 'datamatrix', ''                                             ],
 	);
     
     foreach my $idx (sort {$a <=> $b} keys %defargs) {
@@ -746,6 +750,65 @@ sub set_gritems {
 
     $self->{gritems} = $gritems_aref;
 }
+
+=head2 get/set_datamatrix
+
+  Usage: my $matrix = $rgraph->get_datamatrix();
+         $rgraph->set_datamatrix($matrix);
+
+  Desc: Get or set the data matrix into YapRI::Graph::Simple object
+
+  Ret: Get: $matrix, a YapRI::Data::Matrix object
+       Set: none
+
+  Args: Get: none
+        Set: $matrix, a YapRI::Data::Matrix object
+
+  Side_Effects: Die if no argument is used.
+                Die if the object is not a YapRI::Data::Matrix object
+
+  Example: my $matrix = $rgraph->get_datamatrix();
+           $rgraph->set_datamatrix($matrix);
+              
+=cut
+
+sub get_datamatrix {
+    my $self = shift;
+    return $self->{datamatrix};
+}
+
+sub set_datamatrix {
+    my $self = shift;
+    my $mtx = shift;
+
+    unless (defined $mtx) {
+	croak("ERROR: No datamatrix argument was supplied to set_datamatrix()")
+    }
+    else {
+	if ($mtx =~ m/./) {
+	    unless (ref($mtx) eq 'YapRI::Data::Matrix') {
+		croak("ERROR: $mtx supplied to set_datamatrix isnt Matrix obj");
+	    }
+	}
+    }
+    $self->{datamatrix} = $mtx;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ####

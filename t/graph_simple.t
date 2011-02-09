@@ -30,7 +30,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 43;
+use Test::More tests => 46;
 use Test::Exception;
 use Test::Warn;
 
@@ -53,14 +53,15 @@ my @rih_objs = ();
 ## First, create the empty object and check it, TEST 3 to 6
 
 my %empty_args = (
-    rbase    => '',
-    grfile   => '',
-    device   => '',
-    devargs  => {},
-    grparams => {},
-    sgraph   => '',
-    sgrargs  => {},
-    gritems  => [],
+    rbase      => '',
+    grfile     => '',
+    device     => '',
+    devargs    => {},
+    grparams   => {},
+    sgraph     => '',
+    sgrargs    => {},
+    gritems    => [],
+    datamatrix => '',
     );
 
 my $rgraph0 = YapRI::Graph::Simple->new(\%empty_args);
@@ -96,21 +97,24 @@ my $gritems0 = [ { func => 'points',
                    args => { cex => 0.5, col => "dark read" },
                  } 
                ];
+my $rmatrix0 = YapRI::Data::Matrix->new();
+
 
 ## They need to run in order
 
 my @acsors = (
-    [ 'rbase'    , $rbase0    ], 
-    [ 'grfile'   , 'filetest' ],
-    [ 'device'   , 'bmp'      ],
-    [ 'devargs'  , $devargs0  ],
-    [ 'grparams' , $grparams0 ],
-    [ 'sgraph'   , 'plot'     ],
-    [ 'sgrargs'  , $sgrargs0  ],
-    [ 'gritems'  , $gritems0  ],
+    [ 'rbase'     , $rbase0    ], 
+    [ 'grfile'    , 'filetest' ],
+    [ 'device'    , 'bmp'      ],
+    [ 'devargs'   , $devargs0  ],
+    [ 'grparams'  , $grparams0 ],
+    [ 'sgraph'    , 'plot'     ],
+    [ 'sgrargs'   , $sgrargs0  ],
+    [ 'gritems'   , $gritems0  ],
+    [ 'datamatrix', $rmatrix0  ],
     );
 
-## Run the common checkings, TEST 7 to 22
+## Run the common checkings, TEST 7 to 24
 
 foreach my $accs (@acsors) {
     my $func = $accs->[0];
@@ -126,7 +130,7 @@ foreach my $accs (@acsors) {
     "TESTING DIE ERROR when no args. were supplied to $setfunc function";
 }
 
-## Check die for specific accessors, TEST 23 to 43
+## Check die for specific accessors, TEST 25 to 46
 
 throws_ok { $rgraph0->set_rbase('fake')} qr/ERROR: fake obj./, 
     "TESTING DIE ERROR when arg supplied to set_rbase isnt YapRI::Base";
@@ -202,6 +206,8 @@ throws_ok { $rgraph0->set_gritems([{ func => 'axis',
 				     args => { fake => 1 } }])} qr/ERROR: fak/, 
     "TESTING DIE ERROR when 'args' key used for set_gritems() isnt permited";
 
+throws_ok { $rgraph0->set_datamatrix('fake')} qr/ERROR: fake supplied/, 
+    "TESTING DIE ERROR when arg supp. set_datamatrix isnt YapRI::Data::Matrix";
 
 
 ############################
