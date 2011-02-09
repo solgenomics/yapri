@@ -1229,9 +1229,9 @@ sub run_block {
 }
 
 
-#######################
-## R. OBJECT METHODS ##
-#######################
+#################################
+## R. OBJECT/FUNCTIONS METHODS ##
+#################################
 
 =head2 r_object_class
 
@@ -1317,7 +1317,102 @@ sub r_object_class {
     return $class;
 }
 
+=head2 r_function_args
 
+  Usage: my %rargs = $rih->r_function_args($r_function); 
+
+  Desc: Get the arguments for a concrete R function.
+
+  Ret: %rargs, a hash with key=r_function_argument, 
+                           value=function_default_value
+
+  Args: none
+
+  Side_Effects: Die if no R function argument is used
+                Return empty hash if the function doesnt exist
+                If the argument doesnt have any value, add <function.input.data
+
+  Example: my %plot_args = $rih->r_function_args('plot')
+
+=cut
+
+sub r_function_args {
+    my $self = shift;
+    my $func = shift ||
+	croak("ERROR: No R function argument was used for r_funtion_args()");
+
+    my %fargs = ();
+
+    ## Define blocks
+
+    my $block1 = 'GETARGSR_' . $func . '_1';
+    $self->create_block($block1);
+    my $block2 = 'GETARGSR_' . $func . '_2';
+    $self->create_block($block2);
+    my @blocks = ($block1, $block2);
+
+    ## Get environment for function
+
+    my $env;
+
+    my $env_cmd = 'if(exists("'.$func.'"))environment('.$func.')';
+    $self->add_command($env_cmd, $block1);
+    $self->run_block($block1);
+    my $rfile1 = $self->get_resultfiles($block1);
+    
+    open my $rfh1, '<', $rfile1;
+    while(<$rfh1>) {
+	if ($_ =~ m/<environment:\snamespace:(.+)>/) {
+	    $env = $1;
+	}
+    }
+    close($rfh1);
+
+    ## Now if it has a env (defined $env), it will the second command
+
+    if (defined $env) {
+
+	my $arg_cmd = 'args(' . $env . '::' . $func . '.default)';
+	$self->add_command($arg_cmd, $block2);
+	$self->run_block($block2);
+	my $rfile2 = $self->get_resultfiles($block2);
+
+	open my $rfh2, '<', $rfile2;
+	
+	## Catch the defaults
+	my $fline = '';
+	while(<$rfh2>) {
+	    chomp($_);
+	    $_ =~ s/\s+/ /g;
+	    $fline .= $_;
+	}
+	close($rfh2);
+	
+	## Parse the line
+	$fline =~ s/^function\s*\(\s*//;            ## Remove the head
+	$fline =~ s/,\s?\.*\s*\)\s*NULL$//;         ## Remove the tail
+	
+	my @fpargs = split(/,/, $fline);
+	foreach my $fparg (@fpargs) {
+	    $fparg =~ s/^\s+//;
+	    if ($fparg =~ m/^(.+)=(.+)$/) {
+		$fargs{$1} = $2;
+	    }
+	    else {
+		$fargs{$fparg} = '<function.input.data';
+	    }
+	}
+    }
+
+    ## Finally it will delete the blocks
+    
+    foreach my $block (@blocks) {
+	$self->delete_cmdfile($block);
+	$self->delete_resultfile($block);
+    }
+
+    return %fargs;
+}
 
 
 
