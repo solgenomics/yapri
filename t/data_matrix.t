@@ -2,15 +2,15 @@
 
 =head1 NAME
 
-  matrix.t
+  data_matrix.t
   A piece of code to test the YapRI::Data::Matrix module
 
 =cut
 
 =head1 SYNOPSIS
 
- perl matrix.t
- prove matrix.t
+ perl data_matrix.t
+ prove data_matrix.t
 
 =head1 DESCRIPTION
 
