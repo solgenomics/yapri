@@ -31,7 +31,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 104;
+use Test::More tests => 118;
 use Test::Exception;
 use Test::Warn;
 
@@ -755,9 +755,44 @@ is($resfiles_fc{GETARGSR_plot_2}, undef,
     or diag("Looks like this has failed");
 
 
-
 throws_ok  { $rih4->r_function_args() } qr/ERROR: No R function/, 
     'TESTING DIE ERROR when no function arg. was supplied to r_function_args()';
+
+
+## Check internal function, r_var
+
+my %r_p_vars = (
+    '1'              => 1,
+    '-1.23'          => '-1.23',
+    '"word"'         => 'word',
+    '"mix%(4)"'      => 'mix%(4)',
+    'c(2, 4)'        => [2, 4],
+    'c(-1.2, -4)'    => ['-1.2', '-4'],
+    'TRUE'           => 'TRUE',
+    'FALSE'          => 'FALSE', 
+    'NULL'           => undef, 
+    'NA'             => '',
+    'c(TRUE, FALSE)' => ['TRUE', 'FALSE'],
+    'c(NA, NULL)'    => ['', undef],
+    );
+
+foreach my $rvar (keys %r_p_vars) {
+    is(YapRI::Base::r_var($r_p_vars{$rvar}), $rvar, 
+	"testing r_var function for $rvar, checking R string")
+	or diag("Looks like this has failed");
+}
+
+throws_ok  { YapRI::Base::r_var({}) } qr/ERROR: HASH/, 
+    'TESTING DIE ERROR when variable supplied to r_var isnt valid (HREF)';
+
+throws_ok  { YapRI::Base::r_var([{}, {}]) } qr/ERROR: HASH/, 
+    'TESTING DIE ERROR when variable supplied to r_var isnt valid (@ of HREFs)';
+
+
+
+
+
+
 
 
 ##############################################################

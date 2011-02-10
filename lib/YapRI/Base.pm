@@ -1433,6 +1433,106 @@ sub r_function_args {
 }
 
 
+=head2 r_var
+
+  Usage: my $r_string = r_var($perl_var); 
+
+  Desc: Parse a perl variable and return a string with the r variable format, 
+        for example: $p_sc = 1                  ==> $r_st = '1'
+                     $p_sc = '-1.23'            ==> $r_st = '-1.23'
+                     $p_sc = 'word'             ==> $r_st = '"word"'
+                     $p_sc = ''                 ==> $r_st = 'NA'
+                     $p_sc = undef              ==> $r_st = 'NULL'
+                     $p_aref = [qw/TRUE FALSE/] ==> $r_st = 'c(TRUE, FALSE)'
+                     $p_aref = [1, 2]           ==> $r_st = 'c(1, 2)'
+                     $p_aref = ['w1'])          ==> $r_st = 'c("w1")'
+
+  Ret: $r_string, a scalar with the perl2R variable translation
+
+  Args: $perl_var, could be, a scalar or an array reference
+
+  Side_Effects: Die if is used other perl variable different from scalar, or
+                array reference, being valid values such as integers, words, 
+                defined but without value ('') or undef.
+
+  Example: my $rvar = r_var([1, 2, 3, "TRUE", "last word"]);
+
+=cut
+
+sub r_var {
+    my $pvar = shift;
+
+    my $rvar;
+
+    my $error = "isnt a valid variable to convert to R.";
+    if (defined $pvar) {
+	if ($pvar =~ m/./) {
+	    unless (ref($pvar)) {
+		my $mbf = Math::BigFloat->new($pvar);
+		if ($mbf->is_nan()) {
+		    if ($pvar =~ m/^(TRUE|FALSE)$/) {
+			$rvar = $pvar;
+		    }
+		    else {
+			$rvar = '"' . $pvar .'"';
+		    }
+		}
+		else {
+		    $rvar = $mbf->bstr();
+		}
+	    }
+	    else {
+		if (ref($pvar) eq 'ARRAY') {
+		    my @pavars = @{$pvar};
+		    my @comp = ();
+		    foreach my $aevar (@pavars) {
+			unless (ref($aevar)) {
+			    if (defined $aevar) {
+				if ($aevar =~ m/./) {
+				    my $aembf = Math::BigFloat->new($aevar);
+				    if ($aembf->is_nan()) {
+					if ($aevar =~ m/^(TRUE|FALSE)$/) {
+					    push @comp, $aevar;
+					}
+					else {
+					    push @comp, '"' . $aevar .'"';
+					}
+				    }
+				    else {
+					push @comp, $aembf->bstr();
+				    }
+				}
+				else {
+				    push @comp, 'NA';
+				}
+			    }
+			    else {
+				push @comp, 'NULL';
+			    }
+			}		    
+			else {
+			    croak("ERROR: $aevar " . $error);
+			}
+			$rvar = 'c(' . join(', ', @comp) . ')';
+		    }
+		}
+		else {
+		    croak("ERROR: $pvar " . $error);
+		}
+	    }
+	}
+	else { ## Perl variable defined but empty will be R variable 'NA'
+	    $rvar = 'NA';
+	}
+    }
+    else {  ## Perl variable undef will be R variable 'NULL'
+	$rvar = 'NULL';
+    }
+
+    return $rvar;
+}
+
+
 
 
 ####
