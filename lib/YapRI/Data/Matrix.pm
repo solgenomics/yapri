@@ -70,7 +70,7 @@ $VERSION = eval $VERSION;
   ## Parsers:
      
   my $rbase = YapRI::Base->new();
-  $rmatrix->send_rbase($rbase);
+  $rmatrix->send_rbase($rbase, $mode);
  
   $rmatrix = YapRI::Data::Matrix->read_rbase($rbase, $block, $r_object_name);
 
@@ -91,6 +91,9 @@ $VERSION = eval $VERSION;
    +-----------+    +----------------------+    | YaRI::Base |    | R |--------+
    | PerlData2 | <= | YaRI::Data::Matrix 2 |<=  |            | <= |   | Output |
    +-----------+    +----------------------+    +------------+    +---+--------+
+
+ It lets export data to R frame as: matrix (default), data.frames, vector 
+ (by_rows or by_columns) and list (by_rows or by_columns).
 
 
 =head1 AUTHOR
@@ -1572,50 +1575,29 @@ sub get_element {
 
 =head2 ---------------
 
+=head2 _matrix_cmd
 
-=head2 send_rbase
+  Usage: my $cmd = $rmatrix->_matrix_cmd();
 
-  Usage: $rmatrix->send_rbase($rbase);
-
-  Desc: Load the matrix data as a block in a rbase object (YapRI::Base)
-        The R matrix name will the same than the perl matrix name.
+  Desc: Build the command to add a new matrix 
  
   Ret: None
 
-  Args: $rbase, a YapRI::Base object
+  Args: None
         
-  Side_Effects: Die if no rbase object is used or if the argument used
-                is not a YapRI::Base object
+  Side_Effects: None
 
-  Example: $rmatrix->send_rbase($rbase);
+  Example: my $cmd = $rmatrix->_matrix_cmd();
           
-=cut
+=cut 
 
-sub send_rbase {
+sub _matrix_cmd {
     my $self = shift;
-    my $rbase = shift ||
-	croak("ERROR: No rbase argument was used for send_rbase function.");
 
-    if (ref($rbase) ne 'YapRI::Base') {
-	croak("ERROR: $rbase supplied to send_rbase() isnt YapRI::Base obj.");
-    }
-
-    ## First get the data, and check if there are data
-
-    my @data = @{$self->get_data()};
-
-    unless (scalar(@data) > 0) {
-	croak("ERROR: object $self doesnt have set any data to use rbase().")
-    }
-
-    ## Now it will build the R command to load a matrix
-
-    my $mtx_name = $self->get_name;
-    if ($mtx_name !~ m/\w+/) {
-	croak("ERROR: Matrix=$self doesnt have any name to pass to R block");
-    }
     my $cmd = $self->get_name . ' <- matrix(c(';
    
+    my @data = @{$self->get_data()};
+
     my @fdata = ();
     foreach my $dat (@data) {
 	if ($dat =~ m/^\d+$/) {
@@ -1652,6 +1634,81 @@ sub send_rbase {
 	push @fcol, '"' . $col . '"';
     }
     $cmd .= join(',', @fcol) . ')))';
+    
+    return $cmd;
+}
+
+
+
+
+
+
+
+=head2 send_rbase
+
+  Usage: $rmatrix->send_rbase($rbase, $mode);
+
+  Desc: Load the matrix data as a block in a rbase object (YapRI::Base)
+        The R matrix name will the same than the perl matrix name.
+ 
+  Ret: None
+
+  Args: $rbase, a YapRI::Base object
+        $mode, a scalar with the following possible values matrix, dataframe
+               vectors_by_row, vectors_by_col, list_by_row, list_by_col
+        
+  Side_Effects: Die if no rbase object is used or if the argument used
+                is not a YapRI::Base object
+
+  Example: $rmatrix->send_rbase($rbase);
+          
+=cut
+
+sub send_rbase {
+    my $self = shift;
+    my $rbase = shift ||
+	croak("ERROR: No rbase argument was used for send_rbase function.");
+    my $mode = shift ||
+	'matrix';                        ## Matrix mode by default
+
+    my %permmodes = (
+	matrix        => '_matrix_cmd',
+	dataframe     => '_dataframe_cmd',
+	vector_by_row => '_rowvectors_cmd', 
+	vector_by_col => '_colvectors_cmd',
+	list_by_row   => '_rowlist_cmd',
+	list_by_col   => '_collist_cmd',
+	);
+
+    unless (exists $permmodes{$mode}) {
+	my $l = join(',', keys %permmodes);
+	croak("ERROR: $mode is an unknown mode ($l). Aborting send_rbase().");
+    }
+
+
+    if (ref($rbase) ne 'YapRI::Base') {
+	croak("ERROR: $rbase supplied to send_rbase() isnt YapRI::Base obj.");
+    }
+
+    ## First get the data, and check if there are data
+
+    my @data = @{$self->get_data()};
+
+    unless (scalar(@data) > 0) {
+	croak("ERROR: object $self doesnt have set any data to use rbase().")
+    }
+
+    ## Now it will build the R command to load a matrix
+
+    my $mtx_name = $self->get_name;
+    if ($mtx_name !~ m/\w+/) {
+	croak("ERROR: Matrix=$self doesnt have any name to pass to R block");
+    }
+    
+    ## depending of the mode it will use different functions
+
+    my $cmdfunc = $permmodes{$mode};
+    my $cmd = $self->$cmdfunc();   
    
     ## Now it will create the block with the matrix name
 

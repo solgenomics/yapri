@@ -30,7 +30,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 97;
+use Test::More tests => 98;
 use Test::Exception;
 use Test::Warn;
 
@@ -550,6 +550,21 @@ my $matrix4 = YapRI::Data::Matrix->read_rbase($rih2, 'mixmatrix', 'mixmatrix');
 is(join(',', @{$matrix4->get_data()}), '1,2,Yes,3,4,No',
     "testing read_rbase for mixed element matrices, checking data")
     or diag("Looks like something has failed");
+
+
+###################
+## DATA COMMANDS ##
+###################
+
+my $exp_mtxcmd = $matrix0->get_name();
+$exp_mtxcmd .= ' <- matrix(c(1,98,15,12,8,1), nrow=2, ';
+$exp_mtxcmd .= 'ncol=3, byrow=TRUE, dimnames=list(c("C","A"), c("4","2","1")))';
+is($matrix0->_matrix_cmd, $exp_mtxcmd, 
+    "testing _matrix_cmd, checking command line")
+    or diag("Looks like this has failed");
+
+
+
 
 
 
