@@ -30,7 +30,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 113;
+use Test::More tests => 116;
 use Test::Exception;
 use Test::Warn;
 
@@ -639,7 +639,7 @@ foreach my $mode (keys %modes) {
     my $rbase_t = YapRI::Base->new();
     push @rih_objs, $rbase_t;
 
-    $matrix0->send_rbase($rbase_t, $mode);
+    $matrix0->send_rbase($rbase_t, undef, $mode);
    
     foreach my $robj (keys %{$modes{$mode}}) {
 	my $class = $rbase_t->r_object_class($matrix0->get_name(), $robj);
@@ -648,6 +648,26 @@ foreach my $mode (keys %modes) {
 	    or diag("Looks like this has failed");
     }
 }
+
+## Check if it can add a matrix to an existing block
+
+my $nblock1 = 'TESTADDMATRIX1';
+$rih2->create_block($nblock1);
+$rih2->add_command('xvar <- c(1, 2, 3)', $nblock1);
+
+$matrix0->send_rbase($rih2, $nblock1);
+
+is($rih2->r_object_class($nblock1, 'xvar'), 'numeric', 
+    "testing send_rbase to a block, checking old var")
+    or diag("Looks like this has failed");
+
+is($rih2->r_object_class($nblock1, $matrix0->get_name()), 'matrix', 
+    "testing send_rbase to a block, checking matrix")
+    or diag("Looks like this has failed");
+
+throws_ok { $matrix0->send_rbase($rih2, 'fake') } qr/ERROR: fake isnt/, 
+    'TESTING DIE ERROR when no defined block is used with send_rbase()';
+
 
 ##############################################################
 ## Finally it will clean the files produced during the test ##

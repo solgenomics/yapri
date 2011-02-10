@@ -1818,28 +1818,45 @@ sub _colvectors_cmd {
 
 =head2 send_rbase
 
-  Usage: $rmatrix->send_rbase($rbase, $mode);
+  Usage: $rmatrix->send_rbase($rbase, $block, $mode);
 
   Desc: Load the matrix data as a block in a rbase object (YapRI::Base)
         The R matrix name will the same than the perl matrix name.
+        If block argument is used, it will add the command to this block.
+        If block argument is undef or empty, it will create a new block with
+        the argument name
  
   Ret: None
 
-  Args: $rbase, a YapRI::Base object
+  Args: $rbase, a YapRI::Base object, 
+        $block, block to create or add the data, an undef or empty value
+                will create a new block with the matrix name.
         $mode, a scalar with the following possible values matrix, dataframe
-               vectors_by_row and vectors_by_col
-        
+               vectors_by_row and vectors_by_col (optional, matrix by default)
+             
+ 
   Side_Effects: Die if no rbase object is used or if the argument used
                 is not a YapRI::Base object
 
-  Example: $rmatrix->send_rbase($rbase);
-          
+  Example: ## Default mode (R matrix in a new block with name=matrix_name)
+              $rmatrix->send_rbase($rbase);
+
+           ## Adding a matrix to BLOCK1
+              $rmatrix->send_rbase($rbase, 'BLOCK1');
+
+           ## Adding a data.frame to GRAPH1
+              $rmatrix->send_rbase($rbase, 'GRAPH1', 'dataframe');
+
+           ## Adding as vectors by row to a matrix name block 
+              $rmatrix->send_rbase($rbase, '', 'vectors_by_row');
 =cut
 
 sub send_rbase {
     my $self = shift;
     my $rbase = shift ||
 	croak("ERROR: No rbase argument was used for send_rbase function.");
+    my $block = shift ||
+	'';                              ## Default will be empty
     my $mode = shift ||
 	'matrix';                        ## Matrix mode by default
 
@@ -1863,6 +1880,15 @@ sub send_rbase {
 	croak("ERROR: $rbase supplied to send_rbase() isnt YapRI::Base obj.");
     }
 
+    ## Check if Block exist for rbase
+
+    my %blocks = %{$rbase->get_cmdfiles()};
+    if ($block =~ m/./) {
+	unless (exists $blocks{$block}) {
+	    croak("ERROR: $block isnt defined for $rbase. Aborting send_rbase");
+	}
+    }
+
     ## First get the data, and check if there are data
 
     my @data = @{$self->get_data()};
@@ -1880,7 +1906,10 @@ sub send_rbase {
     
     ## It will create the block with the matrix name
 
-    $rbase->create_block($self->get_name());
+    if ($block !~ m/./) {
+	$rbase->create_block($self->get_name());
+	$block = $self->get_name();
+    }
 
     ## depending of the mode it will use different functions
 
@@ -1888,11 +1917,11 @@ sub send_rbase {
     my $cmd = $self->$cmdfunc();
     if (ref($cmd)) {                       ## For vectors_by_row and col.
 	foreach my $subcmd (@{$cmd}) {
-	    $rbase->add_command($subcmd, $self->get_name);
+	    $rbase->add_command($subcmd, $block);
 	}
     }
     else {                                 ## For matrix and dataframe.
-	 $rbase->add_command($cmd, $self->get_name);
+	 $rbase->add_command($cmd, $block);
     }
 }
 
