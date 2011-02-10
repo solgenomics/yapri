@@ -5,8 +5,8 @@ use strict;
 use warnings;
 use autodie;
 
-use Carp qw| croak cluck |;
-use YapRI::Base;
+use Carp qw(croak cluck);
+use YapRI::Base qw(r_var);
 
 
 ###############
@@ -778,6 +778,77 @@ sub _index_matrix {
     return %index;
 }
 
+
+=head2 _no_duplicate_names
+
+  Usage: $rmatrix->_no_duplicate_names($method);
+
+  Desc: Check if there are duplicate names for col or rows. Die if exists
+        duplicates.
+ 
+  Ret: None
+
+  Args: $method, a scalar that can have 'col', 'row' or 'all'. (all by default)
+        
+  Side_Effects: Overwrite methods that are not 'col' or 'row' with 'all'. 
+                Die if it find duplicates.
+
+  Example: $rmatrix->_no_duplicate_names('col');
+          
+=cut
+
+sub _no_duplicate_names {
+    my $self = shift;
+    my $method = shift
+	|| 'all';
+    
+    my %methods = ( 
+	col => $self->get_colnames(),
+	row => $self->get_rownames(),
+	); 
+    
+    my %dupl = ( col => [], row => []);
+
+    foreach my $me (keys %methods) {
+	my %exs = ();
+	my @names = @{$methods{$me}};
+	foreach my $name (@names) {
+	    unless (exists $exs{$name}) {
+		$exs{$name} = 1;
+	    }
+	    else {
+		$exs{$name}++;
+		if ($exs{$name} < 3) {
+		    push @{$dupl{$me}}, $name;
+		}
+	    }
+	}
+    }
+
+    ## With the list of duplicates
+
+    my @coldupl = @{$dupl{col}};
+    my @rowdupl = @{$dupl{row}};
+    my $clist = join(',', @coldupl) || 'none';
+    my $rlist = join(',', @rowdupl) || 'none';
+
+    if ($method =~ m/^col$/i) {
+	if (scalar(@coldupl) > 0) {
+	    croak("ERROR: There are column duplicates ($clist).");
+	}
+    }
+    elsif ($method =~ m/^row$/i) {
+	if (scalar(@rowdupl) > 0) {	    
+	    croak("ERROR: There are row duplicates ($rlist).");
+	}
+    }
+    else {
+	my $dupl = scalar(@coldupl) + scalar(@rowdupl);
+	if ($dupl > 0) {
+	    croak("ERROR: There are duplicate names (col=$clist, row=$rlist).");
+	}
+    }
+}
 
 #####################
 ## DATA FUNCTIONS ###
@@ -1581,7 +1652,7 @@ sub get_element {
 
   Desc: Build the command to add a new matrix 
  
-  Ret: None
+  Ret: $cmd, a string with the R command
 
   Args: None
         
@@ -1594,22 +1665,11 @@ sub get_element {
 sub _matrix_cmd {
     my $self = shift;
 
-    my $cmd = $self->get_name . ' <- matrix(c(';
-   
-    my @data = @{$self->get_data()};
+    my $cmd = $self->get_name . ' <- matrix(';
 
-    my @fdata = ();
-    foreach my $dat (@data) {
-	if ($dat =~ m/^\d+$/) {
-	    push @fdata, $dat;
-	}
-	else {
-	    push @fdata, '"' . $dat . '"';  ## if isnt a digit it needs "
-	}
-    }
-
-
-    $cmd .= join(',', @fdata) . '), ';
+    ## Add data using r_var function to convert in per R string
+    
+    $cmd .= YapRI::Base::r_var($self->get_data()) . ', ';
     
     ## add rown, coln and byrow=TRUE
     
@@ -1619,29 +1679,141 @@ sub _matrix_cmd {
 
     ## Finally it will add the row and col names
 
-    $cmd .= 'dimnames=list(c(';
+    $cmd .= 'dimnames=list(';    
+    $cmd .= YapRI::Base::r_var($self->get_rownames()) . ', ';
+    $cmd .= YapRI::Base::r_var($self->get_colnames()) . ')';
     
-    ## before it needs to format adding '"'
-    
-    my @frow = ();
-    foreach my $row (@{$self->get_rownames()}) {
-	push @frow, '"' . $row . '"';
-    }
-    $cmd .= join(',', @frow) . '), c(';
-    
-    my @fcol = ();
-    foreach my $col (@{$self->get_colnames()}) {
-	push @fcol, '"' . $col . '"';
-    }
-    $cmd .= join(',', @fcol) . ')))';
-    
+    ## And close the matrix
+    $cmd .= ')';
+
     return $cmd;
 }
 
 
+=head2 _dataframe_cmd
+
+  Usage: my $cmd = $rmatrix->_dataframe_cmd();
+
+  Desc: Build the command to add a new dataframe to R block
+ 
+  Ret: $cmd, a string with the R command
+
+  Args: None
+        
+  Side_Effects: If the column names are numeric (f.example: 1), it will
+                add an X before (R doesnt accept numeric column names)
+
+  Example: my $cmd = $rmatrix->_dataframe_cmd();
+          
+=cut 
+
+sub _dataframe_cmd {
+    my $self = shift;
+
+    my $cmd;
+
+    ## A data frame is build with R vectors of columns
+    ## data.frame('col1'=c(coldata1), ... row.names=c(rownames))
+    
+    my $mtxname = $self->get_name();
+    my @colnames = @{$self->get_colnames()};
+    my @rownames = @{$self->get_rownames()};
+
+    my @dataframe_data = ();
+    foreach my $col (@colnames) {
+	my @coldata = $self->get_column($col);
+	if ($col =~ m/^\d+$/) {
+	    $col = 'X' . $col;
+	}
+	push @dataframe_data, $col . '=' . r_var(\@coldata);
+    }
+    
+    ## Now it will create the data frame
+    my $dataline = join(', ', @dataframe_data);
+
+    $cmd = $mtxname . ' <- data.frame( ' . $dataline;           ## Add data
+    if (scalar(@rownames) > 0) {                               ## Add rownames
+	$cmd .= ', row.names=' . r_var($self->get_rownames);
+    } 
+    $cmd .= ' )';                                              ## Close
+    
+    return $cmd;
+}
+
+=head2 _rowvectors_cmd
+
+  Usage: my $cmds_aref = $rmatrix->_rowvectors_cmd();
+
+  Desc: Build the command to add a list of vectors, parsing the matrix
+        by rows 
+ 
+  Ret: $cmds_aref, an array ref. with strings with the R command
+
+  Args: None
+        
+  Side_Effects: Create as many vectors as rows has the matrix, with the
+                row names as vector names. If the row names are numeric, 
+                it will add an 'X' before the number (for example, 67 will
+                be X67).
+
+  Example: my @cmds = @{$rmatrix->_rowvectors_cmd()};
+          
+=cut 
+
+sub _rowvectors_cmd {
+    my $self = shift;
+
+    my @cmds = ();
+
+    my @rownames = @{$self->get_rownames()};
+    foreach my $name (@rownames) {
+	my @rowdata = $self->get_row($name);
+	if ($name =~ m/^\d+$/) {
+	    $name = 'X' . $name;
+	}
+	push @cmds, $name . ' <- ' .r_var(\@rowdata);
+    }
+
+    return \@cmds;
+}
 
 
+=head2 _colvectors_cmd
 
+  Usage: my $cmds_aref = $rmatrix->_colvectors_cmd();
+
+  Desc: Build the command to add a list of vectors, parsing the matrix
+        by columns 
+ 
+  Ret: $cmds_aref, an array ref. strings with the R command
+
+  Args: None
+        
+  Side_Effects: Create as many vectors as cols has the matrix, with the
+                col names as vector names. If the col names are numeric, 
+                it will add an 'X' before the number (for example, 67 will
+                be X67).
+
+  Example: my @cmds = @{$rmatrix->_colvectors_cmd()};
+          
+=cut 
+
+sub _colvectors_cmd {
+    my $self = shift;
+
+    my @cmds = ();
+
+    my @colnames = @{$self->get_colnames()};
+    foreach my $name (@colnames) {
+	my @coldata = $self->get_column($name);
+	if ($name =~ m/^\d+$/) {
+	    $name = 'X' . $name;
+	}
+	push @cmds, $name . ' <- ' .r_var(\@coldata);
+    }
+
+    return \@cmds;
+}
 
 
 =head2 send_rbase
@@ -1655,7 +1827,7 @@ sub _matrix_cmd {
 
   Args: $rbase, a YapRI::Base object
         $mode, a scalar with the following possible values matrix, dataframe
-               vectors_by_row, vectors_by_col, list_by_row, list_by_col
+               vectors_by_row and vectors_by_col
         
   Side_Effects: Die if no rbase object is used or if the argument used
                 is not a YapRI::Base object
@@ -1672,12 +1844,10 @@ sub send_rbase {
 	'matrix';                        ## Matrix mode by default
 
     my %permmodes = (
-	matrix        => '_matrix_cmd',
-	dataframe     => '_dataframe_cmd',
-	vector_by_row => '_rowvectors_cmd', 
-	vector_by_col => '_colvectors_cmd',
-	list_by_row   => '_rowlist_cmd',
-	list_by_col   => '_collist_cmd',
+	matrix         => '_matrix_cmd',
+	dataframe      => '_dataframe_cmd',
+	vectors_by_row => '_rowvectors_cmd', 
+	vectosr_by_col => '_colvectors_cmd',
 	);
 
     unless (exists $permmodes{$mode}) {
@@ -1685,6 +1855,9 @@ sub send_rbase {
 	croak("ERROR: $mode is an unknown mode ($l). Aborting send_rbase().");
     }
 
+    ## Check that it is not using duplicate names
+
+    $self->_no_duplicate_names();
 
     if (ref($rbase) ne 'YapRI::Base') {
 	croak("ERROR: $rbase supplied to send_rbase() isnt YapRI::Base obj.");
@@ -1705,15 +1878,22 @@ sub send_rbase {
 	croak("ERROR: Matrix=$self doesnt have any name to pass to R block");
     }
     
+    ## It will create the block with the matrix name
+
+    $rbase->create_block($self->get_name());
+
     ## depending of the mode it will use different functions
 
     my $cmdfunc = $permmodes{$mode};
-    my $cmd = $self->$cmdfunc();   
-   
-    ## Now it will create the block with the matrix name
-
-    $rbase->create_block($self->get_name());
-    $rbase->add_command($cmd, $self->get_name);
+    my $cmd = $self->$cmdfunc();
+    if (ref($cmd)) {                       ## For vectors_by_row and col.
+	foreach my $subcmd (@{$cmd}) {
+	    $rbase->add_command($subcmd, $self->get_name);
+	}
+    }
+    else {                                 ## For matrix and dataframe.
+	 $rbase->add_command($cmd, $self->get_name);
+    }
 }
 
 =head2 read_rbase

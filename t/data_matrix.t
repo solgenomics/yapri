@@ -30,7 +30,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 98;
+use Test::More tests => 113;
 use Test::Exception;
 use Test::Warn;
 
@@ -552,21 +552,102 @@ is(join(',', @{$matrix4->get_data()}), '1,2,Yes,3,4,No',
     or diag("Looks like something has failed");
 
 
+## no_duplicate_names, TEST 98 to 101
+
+my $matrix_d = YapRI::Data::Matrix->new({ 
+    name => 'dpl1',
+    rown => 2, 
+    coln => 2,
+    rownames => ["X", "Y"],
+    colnames => ["A", "A"],
+    data => [1, 2, 3, 4],
+				       });
+
+throws_ok { $matrix_d->_no_duplicate_names('col') } qr/ERROR: There are col/, 
+    'TESTING DIE ERROR when _no_duplicate_names is used over dupl. cols';
+
+$matrix_d->set_colnames(["A", "B"]);
+$matrix_d->set_rownames(["X", "X"]);
+
+throws_ok { $matrix_d->_no_duplicate_names('row') } qr/ERROR: There are row/, 
+    'TESTING DIE ERROR when _no_duplicate_names is used over dupl. rows';
+
+throws_ok { $matrix_d->_no_duplicate_names('all') } qr/ERROR: There are dupl/, 
+    'TESTING DIE ERROR when _no_duplicate_names is used over dupl. all';
+
+$matrix_d->set_rownames(["X", "Y"]);
+
+lives_ok( sub { $matrix_d->_no_duplicate_names('all') }, 
+    'TESTING LIVE when _no_duplicate_names is used over NO dupl. all');
+
+## Check for send_rbase with duplicate names, TEST 102
+
+$matrix_d->set_rownames(["X", "X"]);
+throws_ok { $matrix_d->send_rbase($rih2) } qr/ERROR: There are dupl/, 
+    'TESTING DIE ERROR when send_rbase is used with duplicates.';
+
+
 ###################
 ## DATA COMMANDS ##
 ###################
 
+## Check, _matrix_cmd, TEST 103
+
 my $exp_mtxcmd = $matrix0->get_name();
-$exp_mtxcmd .= ' <- matrix(c(1,98,15,12,8,1), nrow=2, ';
-$exp_mtxcmd .= 'ncol=3, byrow=TRUE, dimnames=list(c("C","A"), c("4","2","1")))';
-is($matrix0->_matrix_cmd, $exp_mtxcmd, 
+$exp_mtxcmd .= ' <- matrix(c(1, 98, 15, 12, 8, 1), nrow=2, ';
+$exp_mtxcmd .= 'ncol=3, byrow=TRUE, dimnames=list(c("C", "A"), ';
+$exp_mtxcmd .= 'c(4, 2, 1)))';
+is($matrix0->_matrix_cmd(), $exp_mtxcmd, 
     "testing _matrix_cmd, checking command line")
     or diag("Looks like this has failed");
 
+## Check, _matrix_cmd, TEST 104
+
+my $exp_dtfrcmd = $matrix0->get_name();
+$exp_dtfrcmd .= ' <- data.frame( X4=c(1, 12), X2=c(98, 8), X1=c(15, 1), ';
+$exp_dtfrcmd .= 'row.names=c("C", "A") )';
+
+is($matrix0->_dataframe_cmd(), $exp_dtfrcmd, 
+    "testing _dataframe_cmd, checking command line")
+    or diag("Looks like this has failed");
+
+## Check, _rowvectors_cmd, TEST 105
+
+my $exp_rowvect_cmd = 'C <- c(1, 98, 15);A <- c(12, 8, 1)';
+is(join(';', @{$matrix0->_rowvectors_cmd()}), $exp_rowvect_cmd, 
+    "testing _rowvector_cmd, checking command line")
+    or diag("Looks like this has failed");
+
+## Check, _colvectors_cmd, TEST 106
+
+my $exp_colvect_cmd = 'X4 <- c(1, 12);X2 <- c(98, 8);X1 <- c(15, 1)';
+is(join(';', @{$matrix0->_colvectors_cmd()}), $exp_colvect_cmd, 
+    "testing _colvector_cmd, checking command line")
+    or diag("Looks like this has failed");
 
 
+## Check send_rbase with other modes, TEST 107 to 113
 
+my %modes = (
+    matrix         => { $matrix0->get_name() => 'matrix' },
+    dataframe      => { $matrix0->get_name() => 'data.frame' },
+    vectors_by_row => { C => 'numeric', A => 'numeric' }, 
+    vectosr_by_col => { X4 => 'numeric', X2 => 'numeric', X1 => 'numeric' },
+    ); 
 
+foreach my $mode (keys %modes) {
+    my $rbase_t = YapRI::Base->new();
+    push @rih_objs, $rbase_t;
+
+    $matrix0->send_rbase($rbase_t, $mode);
+   
+    foreach my $robj (keys %{$modes{$mode}}) {
+	my $class = $rbase_t->r_object_class($matrix0->get_name(), $robj);
+	is( $class, $modes{$mode}->{$robj}, 
+	    "testing send_rbase with mode=$mode, testing obj class ($robj)")
+	    or diag("Looks like this has failed");
+    }
+}
 
 ##############################################################
 ## Finally it will clean the files produced during the test ##
