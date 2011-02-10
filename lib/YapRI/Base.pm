@@ -5,12 +5,17 @@ use strict;
 use warnings;
 use autodie;
 
-use Carp qw| croak cluck |;
+use Carp qw( croak cluck );
 use Math::BigFloat;
-use File::Temp qw/ tempfile tempdir /;
-use File::Path qw/make_path remove_tree/;
+use File::Temp qw( tempfile tempdir );
+use File::Path qw( make_path remove_tree);
 use File::stat;
 
+## To export some functions
+
+use Exporter qw( import );
+
+our @EXPORT_OK = qw( r_var );
 
 ###############
 ### PERLDOC ###
