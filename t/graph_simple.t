@@ -30,7 +30,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 55;
+use Test::More tests => 60;
 use Test::Exception;
 use Test::Warn;
 
@@ -265,6 +265,33 @@ is($rgraph0->_par_cmd(), $exp_parcmd,
    "testing _par_cmd, command constructor, checking command line")
     or diag("Looks like this has failed");
 
+
+## Check is_grdevice_enabled, 
+
+my $tblock0 = 'TestDevice0';
+$rbase0->create_block($tblock0);
+$rbase0->add_command($exp_devcmd, $tblock0);
+
+is( $rgraph0->is_grdevice_enabled('bmp', $tblock0), 1,
+    "Testing is_grdevice_enabled for enabled block, checking boolean")
+    or diag("Looks like this has failed");
+
+$rbase0->add_command('dev.off()', $tblock0);
+
+is( $rgraph0->is_grdevice_enabled('bmp', $tblock0), 0,
+    "Testing is_grdevice_enabled for disabled block, checking boolean")
+    or diag("Looks like this has failed");
+
+$rbase0->delete_cmdfile($tblock0);
+
+throws_ok { $rgraph0->is_grdevice_enabled()} qr/ERROR: No device/, 
+    "TESTING DIE ERROR when no device was supplied to is_device_enabled";
+
+throws_ok { $rgraph0->is_grdevice_enabled('bmp')} qr/ERROR: No block/, 
+    "TESTING DIE ERROR when no block was supplied to is_device_enabled";
+
+throws_ok { $rgraph0->is_grdevice_enabled('bmp', $tblock0)} qr/ERROR: TestDev/, 
+    "TESTING DIE ERROR when block supplied to is_device_enabled isnt defined";
 
 
 

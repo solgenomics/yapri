@@ -5,10 +5,10 @@ use strict;
 use warnings;
 use autodie;
 
-use Carp qw| croak cluck |;
-use String::Random qw/ random_regex random_string/;
+use Carp qw( croak cluck );
+use String::Random qw( random_regex random_string);
 
-use YapRI::Base;
+use YapRI::Base qw( r_var );
 use YapRI::Data::Matrix;
 
 
@@ -796,6 +796,85 @@ sub set_datamatrix {
 
 
 ###################
+## MIX FUNCTIONS ##
+###################
+
+=head2 is_grdevice_enabled
+
+  Usage: my $enabled = $rgraph->is_grdevice_enabled($device_name, $block)
+
+  Desc: Check if the graphic device is enabled for the current block
+
+  Ret: 1 for enabled, 0 for disabled
+
+  Args: $device_name, a R graphical device name
+        $block, a block name to check, for a concrete rbase object
+
+  Side_Effects: Die if no deice_name or block are supplied.
+                Die if the block supplied doesnt exists in the rbase object
+
+  Example: if ($rgraph->is_grdevice_enabled('bmp', 'BMPE')) {
+                  print "R Device is enabled\n";
+           }
+              
+=cut
+
+sub is_grdevice_enabled {
+    my $self = shift;
+    my $device = shift ||
+	croak("ERROR: No device argument was supplied to is_device_enabled()");
+    my $block = shift ||
+	croak("ERROR: No block argument was supplied to is_device_enabled()");
+
+    ## Check if exists the block
+
+    my $rbase = $self->get_rbase();
+    my %blocks = %{$rbase->get_cmdfiles()};
+    
+    unless (exists $blocks{$block}) {
+	croak("ERROR: $block isnt defined for $rbase.");
+    }
+
+    ## Now it will run all the commands
+
+    my $cblock = 'CHECKDEVICE' ;
+    $rbase->create_block($cblock, $block);
+    $rbase->add_command('print("init.dev.list")', $cblock);
+    $rbase->add_command('dev.cur()', $cblock);
+    $rbase->add_command('print("end.dev.list")', $cblock);
+    $rbase->run_block($cblock);
+    my $rfile = $rbase->get_resultfiles($cblock);
+    open my $rfh, '<', $rfile;
+
+    my $match_region = 0;
+    my $enab = 0;
+    while(<$rfh>) {
+	chomp($_);
+	if ($_ =~ m/end.dev.list/) {
+	    $match_region = 0;
+	}
+	if ($match_region == 1 && $_ =~ m/$device/) {
+	    $enab = 1;
+	}
+	if ($_ =~ m/init.dev.list/) {
+	    $match_region = 1;
+	}
+    }
+    close($rfh);
+
+    ## Finally it will clean everything and return $enab
+    $rbase->delete_cmdfile($cblock);
+    $rbase->delete_resultfile($cblock);
+
+    return $enab;
+}
+
+
+
+
+
+
+###################
 ## GRAPH METHODS ##
 ###################
 
@@ -866,16 +945,7 @@ sub _device_cmd {
     my %devargs = %{$self->get_devargs()};
     foreach my $deva (sort keys %devargs) {
 	
-	$dev_cmd .= ', ' . $deva;
-	if (defined $devargs{$deva}) {
-	    
-	    if ($devargs{$deva} =~ m/^\d+$/) {
-		$dev_cmd .= '=' . $devargs{$deva};
-	    }
-	    else {
-		$dev_cmd .= '="' . $devargs{$deva} . '"';
-	    }
-	}
+	$dev_cmd .= ', ' . $deva . '=' . r_var($devargs{$deva});
     }
     $dev_cmd .= ')';
 
@@ -883,19 +953,19 @@ sub _device_cmd {
 }
 
 
-=head2 _device_cmd
+=head2 _par_cmd
 
-  Usage: my $cmd = $rgraph->_device_cmd();
+  Usage: my $cmd = $rgraph->_par_cmd();
 
-  Desc: Build the device command
+  Desc: Build the par (graphical parameter) command
 
-  Ret: $cmd, a string with the device command
+  Ret: $cmd, a string with the par command
 
   Args: None
 
-  Side_Effects: None
+  Side_Effects: Return undef if no grparams were set.
 
-  Example: my $cmd = $rgraph->_device_cmd();
+  Example: my $cmd = $rgraph->_par_cmd();
               
 =cut
 
@@ -904,7 +974,7 @@ sub _par_cmd {
     
     my %parargs = %{$self->get_grparams()};
 
-    my $cmd = '';
+    my $cmd;
 
     if (scalar(keys %parargs)) {  ## Only if it has some graphical parameters
 	
@@ -914,24 +984,7 @@ sub _par_cmd {
 	foreach my $par (sort keys %parargs) {
 	    my $subcmd = $par;
 	    if (defined $parargs{$par}) {
-		if (ref($parargs{$par}) eq 'ARRAY') {
-		    my @subarr = ();
-		    foreach my $ve (@{$parargs{$par}}) {
-			if ($ve =~ m/^(\d+|FALSE|TRUE)$/) {
-			    push @subarr, $ve;
-			}
-			else {
-			     push @subarr, '"' . $ve . '"';
-			}
-		    }
-		    $subcmd .= '=c(' . join(', ', @subarr) . ')';
-		}
-		elsif ($parargs{$par} =~ m/^(\d+|FALSE|TRUE)$/) {
-		    $subcmd .= '=' . $parargs{$par};
-		}
-		else {
-		    $subcmd .= '="' . $parargs{$par} .'"';
-		}
+		$subcmd .= '=' . r_var($parargs{$par});	
 	    }
 	    push @args, $subcmd;
 	}
@@ -942,6 +995,81 @@ sub _par_cmd {
 
     return $cmd;
 }
+
+
+=head2 _matrix2sgraph_cmd
+
+  Usage: my ($cmd, $r_object) = $rgraph->_matrix2sgraph_cmd();
+
+  Desc: Build the command to get the data from the matrix
+
+  Ret: $cmd, a string with the par command
+       $r_object, a string with the R object name
+
+  Args: None
+
+  Side_Effects: Return undef if no grparams were set.
+
+  Example: my $cmd = $rgraph->_par_cmd();
+              
+=cut
+
+sub plot_sgraph_block {
+    my $self = shift;
+    my $block = shift ||
+	croak("ERROR: No block was supplied to plot_sgraph_block()");
+    my $rdatafr = shift ||
+	croak("ERROR: No R dataframe was supplied to plot_sgraph_block()");
+
+    ## Define common error message
+    my $err = "Aborting plot_sgraph_block()";
+
+    my $rbase = $self->get_rbase();
+    my $class = $rbase->r_object_class($block, $rdatafr);
+
+    ## Check that the object is data.frame
+
+    unless ($class eq 'data.frame') {
+	croak("ERROR: $rdatafr R object isnt a data.frame. $err");
+    }
+
+    ## Check if the device is enabled
+
+    my $ch_block = $rbase->create_block('CheckDeviceEnabled', $block);
+
+
+    ## First get a data.frame for matrix
+
+    my $mtx = $self->get_datamatrix();
+    my $newblock = 'plot_' . $mtx->get_name(); 
+
+    
+    $mtx->send_rbase($rbase, 'dataframe');
+    $rbase->combine_blocks([$block, $mtx->get_name()], $newblock);
+
+    ## Now it will create the cmd and add to the newblock with the
+    ## sgrargs
+
+    my $cmd = $self->get_sgraph . '(' . $mtx->get_name();
+
+    my %sgrargs = %{$self->get_sgrargs()};
+    foreach my $sgra (keys %sgrargs) {
+	if (defined $sgrargs{$sgra}) {
+	    $cmd .= ',' . $sgra . '=' . r_var($sgrargs{$sgra});
+	}
+	else {
+	    $cmd .= ',' . $sgra;
+	}
+    }
+    $cmd .= ')';
+    
+    ## Add the command
+
+    $rbase->add_command($cmd, $newblock);
+
+    return $newblock;
+}
+
 
 
 =head2 build_graph
@@ -992,6 +1120,11 @@ sub build_graph {
     ## 3) Build the command with the graphical parameters
 
     my $par_cmd = $self->_par_cmd();
+    if (defined $par_cmd) {
+	$rbase->add_command($par_cmd, $block1);
+    }
+
+    ## 4) 
 
 }
 
