@@ -31,7 +31,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 118;
+use Test::More tests => 130;
 use Test::Exception;
 use Test::Warn;
 
@@ -762,18 +762,31 @@ throws_ok  { $rih4->r_function_args() } qr/ERROR: No R function/,
 ## Check internal function, r_var
 
 my %r_p_vars = (
-    '1'              => 1,
-    '-1.23'          => '-1.23',
-    '"word"'         => 'word',
-    '"mix%(4)"'      => 'mix%(4)',
-    'c(2, 4)'        => [2, 4],
-    'c(-1.2, -4)'    => ['-1.2', '-4'],
-    'TRUE'           => 'TRUE',
-    'FALSE'          => 'FALSE', 
-    'NULL'           => undef, 
-    'NA'             => '',
-    'c(TRUE, FALSE)' => ['TRUE', 'FALSE'],
-    'c(NA, NULL)'    => ['', undef],
+    '1'                          => 1,
+    '-1.23'                      => '-1.23',
+    '"word"'                     => 'word',
+    '"mix%(4)"'                  => 'mix%(4)',
+    'c(2, 4)'                    => [2, 4],
+    'c(-1.2, -4)'                => ['-1.2', '-4'],
+    'TRUE'                       => 'TRUE',
+    'FALSE'                      => 'FALSE', 
+    'NULL'                       => undef, 
+    'NA'                         => '',
+    'c(TRUE, FALSE)'             => ['TRUE', 'FALSE'],
+    'c(NA, NULL)'                => ['', undef],
+    'x'                          => { x => undef },
+    'z'                          => { z => '' },
+    'log(2)'                     => { log => 2 },
+    'log(2, base = 10)'          => { log => [2, { base => 10 }]},
+    't(x)'                       => { t => {x => '' } },
+    'plot(x, main = "A")'        => { plot => [ { x => ''}, { main => "A" } ] },
+    'rnorm(b, mean = 0, sd = 1)' => 
+       { rnorm => { b => undef, mean => 0, sd => 1 } },
+    'pie(c(10, 2, 3), labels = c("A", "B", "C"))' => 
+       { pie => [ [10, 2, 3], { labels => ['A', 'B', 'C'] } ] },
+    'bmp(filename = "test"); plot(x)' =>
+       { bmp => { filename => 'test' }, plot => { x => '' } },
+
     );
 
 foreach my $rvar (keys %r_p_vars) {
@@ -782,13 +795,23 @@ foreach my $rvar (keys %r_p_vars) {
 	or diag("Looks like this has failed");
 }
 
-throws_ok  { YapRI::Base::r_var({}) } qr/ERROR: HASH/, 
-    'TESTING DIE ERROR when variable supplied to r_var isnt valid (HREF)';
 
-throws_ok  { YapRI::Base::r_var([{}, {}]) } qr/ERROR: HASH/, 
-    'TESTING DIE ERROR when variable supplied to r_var isnt valid (@ of HREFs)';
+## Check the croak for this functions:
 
+throws_ok  { YapRI::Base::r_var($rih4) } qr/ERROR: YapRI::Base/, 
+    'TESTING DIE ERROR when var supplied isnt scalar or ref. for r_var()';
 
+throws_ok  { YapRI::Base::r_var({ b => $rih4 }) } qr/ERROR: YapRI::Base/, 
+    'TESTING DIE ERROR when var arg. supplied isnt scalar or ref. for r_var() ';
+
+throws_ok  { YapRI::Base::_rvar_arg({ b => $rih4 }) } qr/ERROR: No permited/, 
+    'TESTING DIE ERROR when arg. supplied isnt scalar or ref. for rvar_arg() ';
+
+throws_ok  { YapRI::Base::_rvar_vector('fake') } qr/ERROR: fake/, 
+    'TESTING DIE ERROR when arg. supplied to _rvar_vector isnt ARRAYREF.';
+
+throws_ok  { YapRI::Base::_rvar_noref({}) } qr/ERROR: HASH/, 
+    'TESTING DIE ERROR when arg. supplied to _rvar_noref is a REF.';
 
 
 

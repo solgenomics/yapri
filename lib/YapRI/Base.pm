@@ -1438,41 +1438,59 @@ sub r_function_args {
 }
 
 
-=head2 r_var
 
-  Usage: my $r_string = r_var($perl_var); 
+#################################
+## VARIABLE CONVERSION METHODS ##
+#################################
 
-  Desc: Parse a perl variable and return a string with the r variable format, 
-        for example: $p_sc = 1                  ==> $r_st = '1'
-                     $p_sc = '-1.23'            ==> $r_st = '-1.23'
-                     $p_sc = 'word'             ==> $r_st = '"word"'
-                     $p_sc = ''                 ==> $r_st = 'NA'
-                     $p_sc = undef              ==> $r_st = 'NULL'
-                     $p_aref = [qw/TRUE FALSE/] ==> $r_st = 'c(TRUE, FALSE)'
-                     $p_aref = [1, 2]           ==> $r_st = 'c(1, 2)'
-                     $p_aref = ['w1'])          ==> $r_st = 'c("w1")'
+
+
+=head2 _rvar_noref
+
+  Usage: my $r_string = _r_var_noref($perl_var); 
+
+  Desc: Internal function to parse a single non-reference perl variable
+        (scalar). Equivalence table:
+        
+        +==================+==============+=============================+
+        |  PERL VARIABLE   |  R VARIABLE  | Example                     |
+        +==================+==============+===============+=============+
+        | undef            | NULL         | $px = undef   | rx <- NULL  |
+        +------------------+--------------+---------------+-------------+
+        | empty ('' or "") | NA           | $px = ''      | rx <- NA    |
+        +------------------+--------------+---------------+-------------+
+        | integer          | numeric      | $px = 12      | rx <- 12    |
+        +------------------+--------------+---------------+-------------+
+        | bigint,bigfloat  | numeric      | $px = '-1.2'  | rx <- -1.2  |
+        +------------------+--------------+---------------+-------------+
+        | word 'TRUE'      | TRUE         | $px = 'TRUE'  | rx <- TRUE  |
+        +------------------+--------------+---------------+-------------+
+        | word 'FALSE'     | FALSE        | $px = 'FALSE' | rx <- FALSE |
+        +------------------+--------------+---------------+-------------+
+        | any other word   | character    | $px = "sun"   | rx <- "sun" |
+        +------------------+--------------+---------------+-------------+
 
   Ret: $r_string, a scalar with the perl2R variable translation
 
   Args: $perl_var, could be, a scalar or an array reference
 
-  Side_Effects: Die if is used other perl variable different from scalar, or
-                array reference, being valid values such as integers, words, 
-                defined but without value ('') or undef.
+  Side_Effects: Die if is used a perl reference.
 
-  Example: my $rvar = r_var([1, 2, 3, "TRUE", "last word"]);
+  Example: my $rvar = _rvar_noref(12);
 
 =cut
 
-sub r_var {
+sub _rvar_noref {
     my $pvar = shift;
 
     my $rvar;
-
-    my $error = "isnt a valid variable to convert to R.";
+    
     if (defined $pvar) {
-	if ($pvar =~ m/./) {
-	    unless (ref($pvar)) {
+	if (ref($pvar)) {
+	    croak("ERROR: $pvar is a perl reference, unable to convert to R.");
+	}
+	else {
+	    if ($pvar =~ m/./) {
 		my $mbf = Math::BigFloat->new($pvar);
 		if ($mbf->is_nan()) {
 		    if ($pvar =~ m/^(TRUE|FALSE)$/) {
@@ -1487,47 +1505,219 @@ sub r_var {
 		}
 	    }
 	    else {
-		if (ref($pvar) eq 'ARRAY') {
-		    my @pavars = @{$pvar};
-		    my @comp = ();
-		    foreach my $aevar (@pavars) {
-			unless (ref($aevar)) {
-			    if (defined $aevar) {
-				if ($aevar =~ m/./) {
-				    my $aembf = Math::BigFloat->new($aevar);
-				    if ($aembf->is_nan()) {
-					if ($aevar =~ m/^(TRUE|FALSE)$/) {
-					    push @comp, $aevar;
-					}
-					else {
-					    push @comp, '"' . $aevar .'"';
-					}
-				    }
-				    else {
-					push @comp, $aembf->bstr();
-				    }
-				}
-				else {
-				    push @comp, 'NA';
-				}
-			    }
-			    else {
-				push @comp, 'NULL';
-			    }
-			}		    
-			else {
-			    croak("ERROR: $aevar " . $error);
-			}
-			$rvar = 'c(' . join(', ', @comp) . ')';
-		    }
-		}
-		else {
-		    croak("ERROR: $pvar " . $error);
-		}
+		$rvar = 'NA';
 	    }
 	}
-	else { ## Perl variable defined but empty will be R variable 'NA'
-	    $rvar = 'NA';
+    }
+    else {
+	$rvar = 'NULL';
+    }
+    return $rvar;
+}
+
+=head2 _rvar_vector
+
+  Usage: my $r_arg = _rvar_vector($arrayref); 
+
+  Desc: Internal function to convert an perl array into a R vector
+
+  Ret: $r_arg, a scalar with the perl2R variable translation
+
+  Args: $arrayref, with the argument list
+
+  Side_Effects: Die if the argument is not an arrayref.
+
+  Example: my $r_vector = _rvar_vector($arrayref);
+
+=cut
+
+sub _rvar_vector {
+    my $aref = shift ||
+	croak("ERROR: No array ref. was supplied to _rvar_vector");
+
+    my $rvect;
+    if (ref($aref) eq 'ARRAY') {
+	my @list = ();
+	foreach my $el (@{$aref}) {
+	    push @list, _rvar_noref($el);
+	}
+	$rvect = 'c(' . join(', ', @list) . ')';
+    }
+    else {
+	croak("ERROR: $aref supplied to _rvar_vector isnt an array ref.")
+    }
+    return $rvect;
+}
+
+
+
+=head2 _rvar_arg
+
+  Usage: my $r_arg = _rvar_arg($hashref); 
+
+  Desc: Internal function to convert an argument in a function in the following
+        way:
+         2                              ===> '2'
+         'YES'                          ===> '"YES"'
+         [2, 3]                         ===> 'c(2, 3)'
+         { x      => undef }            ===> 'x'
+         { type   => "p"   }            ===> 'type = "p"'
+         { col    => ["blue", "green"]} ===> 'col = c("blue", "green")'
+         { labels => { x => undef } }   ===> 'labels = x'
+
+        Something different from that, will die.
+
+  Ret: $r_arg, a scalar with the perl2R variable translation
+
+  Args: $hashref, with the argument list
+
+  Side_Effects: Die if the argument is not: scalar, array ref or a hash 
+                reference.
+
+  Example: my $arg = _rvar_arg({ type => "p" });
+
+=cut
+
+sub _rvar_arg {
+    my $parg = shift;
+
+    my $rarg;
+    if (defined $parg) {
+	if (ref($parg)) {
+	    if (ref($parg) eq 'ARRAY') {
+		$rarg = _rvar_vector($parg);
+	    }
+	    elsif (ref($parg) eq 'HASH') {
+		my @list = ();
+		foreach my $k (sort keys %{$parg}) {
+		    if (defined $parg->{$k} && $parg->{$k} =~ m/./) {
+			my $sarg = $k . ' = ';
+			if (ref($parg->{$k}) eq 'HASH') {
+			    $sarg .= join(',', keys %{$parg->{$k}});
+			}
+			elsif (ref($parg->{$k}) eq 'ARRAY') {
+			    $sarg .= _rvar_vector($parg->{$k});
+			}
+			else {
+			    if (ref($parg->{$k})) {
+				croak("ERROR: No permited value for R arg.");
+			    }
+			    $sarg .= _rvar_noref($parg->{$k});
+			}
+			push @list, $sarg;
+		    }
+		    else {
+			push @list, $k;
+		    }
+		}
+		$rarg = join(', ', @list);
+	    }
+	}
+	else {
+	    $rarg = _rvar_noref($parg);
+	}
+    }
+    else {
+	$rarg = 'NULL';
+    }
+    return $rarg
+}
+
+
+
+=head2 r_var
+
+  Usage: my $r_string = r_var($perl_var); 
+
+  Desc: Parse a perl variable and return a string with the r variable format, 
+        For perl-non reference variables, see _rvar_noref
+
+        +==================+=================+==============================+
+        |  PERL VARIABLE   |  R VARIABLE     | Example                      |
+        +==================+=================+==============+===============+
+        | ARRAY REF.       | vector          | $px = [1, 2] | rx <- c(1, 2) |
+        +------------------+-----------------+--------------+---------------+
+        | HASH REF.        | object/function | see below                    |
+        +------------------+-----------------+------------------------------+
+        
+        $px = { a => undef }, will be just 'a' (R object or function) 
+        $px = { mass => '' }, will be just 'mass' (R object or function) 
+        $px = { log  => 2  }, will be 'log(2)'
+        $px = { log  => [2, { base => 10 }] }, will be 'log(2, base = 10 )'
+        $px = { t    => {x => ''} }, will be 't(x)'
+        $px = { plot => [{ x => ''}, { main => "TEST"} ]}, will be:
+                plot(x, main = "TEST")
+
+        Use array ref. to order the arguments in a function.
+        Use hash ref keys to define an argument in an R function      
+
+
+  Ret: $r_string, a scalar with the perl2R variable translation
+
+  Args: $perl_var, could be, a scalar or an array reference
+
+  Side_Effects: Die if the reference used is not a ARRAY REF or HASH REF.
+
+  Example: my $rvar = r_var([1, 2, 3, "TRUE", "last word"]);
+
+=cut
+
+sub r_var {
+    my $pvar = shift;
+
+    my $rvar;
+
+    my $err = "isnt a scalar, ARRAYEF or HASHREF. Unable to convert to R.";
+    if (defined $pvar) {
+	unless (ref($pvar)) {
+	    $rvar = _rvar_noref($pvar);
+	}
+	else {
+	    if (ref($pvar) eq 'ARRAY') {
+		$rvar = _rvar_vector($pvar);
+	    }
+	    elsif (ref($pvar) eq 'HASH') {  ## First level objects or functions
+		
+		my @list = ();
+		foreach my $obj (sort keys %{$pvar}) {
+		    my $subvar = $obj;
+		    my $args = $pvar->{$obj};        ## Second level, arguments
+		
+		    if (defined $args && $args =~ m/./) { 
+			$subvar .= '(';
+
+			unless (ref($args)) {       ## Just numeric, char...
+			    $subvar .= _rvar_noref($args);
+			}			
+			else {			    			
+			    my @arglist = ();
+
+			    if (ref($args) eq 'ARRAY') { ## Ordered by user
+			      
+				foreach my $arg (@{$args}) {
+				    push @arglist, _rvar_arg($arg);
+				}
+			    }
+			    elsif (ref($args) eq 'HASH') { ## No ordered
+				push @arglist, _rvar_arg($args);	
+			    }
+			    else {
+				croak("ERROR: $args $err");
+			    }
+			    $subvar .= join(', ', @arglist);
+			}
+			$subvar .= ')'; ## Close list of arguments
+		    }
+		    push @list, $subvar;
+		    
+		    ## If there are more than one function or object
+
+		    $rvar = join('; ', @list);
+		}
+	    }
+	    else {
+		croak("ERROR: $pvar $err");
+	    }
 	}
     }
     else {  ## Perl variable undef will be R variable 'NULL'
