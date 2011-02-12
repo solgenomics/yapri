@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 =head1 NAME
-
+ 
   graph_simple.t
   A piece of code to test the YapRI::Graph::Simple module
 
@@ -30,7 +30,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 60;
+use Test::More tests => 64;
 use Test::Exception;
 use Test::Warn;
 
@@ -55,14 +55,12 @@ my @rih_objs = ();
 
 my %empty_args = (
     rbase      => '',
+    rdata      => {},
     grfile     => '',
-    device     => '',
-    devargs    => {},
+    device     => {},
     grparams   => {},
-    sgraph     => '',
-    sgrargs    => {},
+    sgraph     => {},
     gritems    => [],
-    datamatrix => '',
     );
 
 my $rgraph0 = YapRI::Graph::Simple->new(\%empty_args);
@@ -90,35 +88,31 @@ throws_ok { YapRI::Graph::Simple->new({rbase => undef})} qr/ARGUMENT ERROR: v/,
 my $rbase0 = YapRI::Base->new();
 push @rih_objs, $rbase0;
 
-my $devargs0 = { width => 150, height => 200, units => 'px' };
-my $grparams0 = { bg  => "transparent", 
-		  cex => 1, 
-		  lab => [5, 5, 7], 
-		  xpd => 'FALSE' };
-my $sgrargs0 = { type => "p", main => "title" };
-my $gritems0 = [ { func => 'points',
-                   data => [10, 20],
-                   args => { cex => 0.5, col => "dark read" },
-                 } 
-               ];
-my $rmatrix0 = YapRI::Data::Matrix->new();
+
+my $rdata0 = { x => YapRI::Data::Matrix->new( { name => 'fruitexp1' } ) };
+
+my $device0 = { bmp => { width => 600, height => 600, units => 'px' } };
+my $grparams0 = { par => { cex => 1, lab => [5, 5, 7], xpd => 'FALSE' } };
+my $sgraph0 = { plot => { x => 'fruitexp1', main => "title" } };
+my $gritems0 = [
+    { points  => { 'x' => 100, 'y' =>  120, col => "red" } },
+    ];
+
 
 
 ## They need to run in order
 
 my @acsors = (
-    [ 'rbase'     , $rbase0    ], 
-    [ 'grfile'    , 'filetest' ],
-    [ 'device'    , 'bmp'      ],
-    [ 'devargs'   , $devargs0  ],
-    [ 'grparams'  , $grparams0 ],
-    [ 'sgraph'    , 'plot'     ],
-    [ 'sgrargs'   , $sgrargs0  ],
-    [ 'gritems'   , $gritems0  ],
-    [ 'datamatrix', $rmatrix0  ],
+    [ 'rbase'     , $rbase0     ], 
+    [ 'grfile'    , 'graph.bmp' ],
+    [ 'rdata'     , $rdata0     ],
+    [ 'device'    , $device0    ],
+    [ 'grparams'  , $grparams0  ],
+    [ 'sgraph'    , $sgraph0    ],
+    [ 'gritems'   , $gritems0   ],
     );
 
-## Run the common checkings, TEST 8 to 25
+## Run the common checkings, TEST 8 to 21
 
 foreach my $accs (@acsors) {
     my $func = $accs->[0];
@@ -134,165 +128,135 @@ foreach my $accs (@acsors) {
     "TESTING DIE ERROR when no args. were supplied to $setfunc function";
 }
 
-## Check die for specific accessors, TEST 26 to 47
+## Check die for specific accessors, TEST 22 to 38
 
 throws_ok { $rgraph0->set_rbase('fake')} qr/ERROR: fake obj./, 
     "TESTING DIE ERROR when arg supplied to set_rbase isnt YapRI::Base";
 
-throws_ok { $rgraph0->set_device('fake')} qr/ERROR: fake isnt permited/, 
-    "TESTING DIE ERROR when arg supplied to set_device isnt a permited dev";
+throws_ok { $rgraph0->set_rdata('fake')} qr/ERROR: Rdata href/, 
+    "TESTING DIE ERROR when arg supplied to set_rdata isnt HASHREF";
 
-throws_ok { $rgraph0->set_devargs('fake')} qr/ERROR: fake for/, 
-    "TESTING DIE ERROR when arg supplied to set_devargs isnt a HASHREF";
+throws_ok { $rgraph0->set_rdata({ x => 'fake'})} qr/ERROR: fake/, 
+    "TESTING DIE ERROR when val supplied to set_rdata isnt YapRI::Data::Matrix";
 
-$rgraph0->set_rbase('');
-throws_ok { $rgraph0->set_devargs({ units => 'px'})} qr/ERROR: Rbase/, 
-    "TESTING DIE ERROR when rbase was not set before run set_devargs()";
-$rgraph0->set_rbase($rbase0);
+throws_ok { $rgraph0->set_device('fake')} qr/ERROR: Device href./, 
+    "TESTING DIE ERROR when arg supplied to set_device isnt a HASHREF";
 
-$rgraph0->set_device('');
-throws_ok { $rgraph0->set_devargs({ units => 'px'})} qr/ERROR: Device/, 
-    "TESTING DIE ERROR when device was not set before run set_devargs()";
-$rgraph0->set_device('bmp');
+throws_ok { $rgraph0->set_device({ fake => {} })} qr/ERROR: fake isnt/, 
+    "TESTING DIE ERROR when key.arg supplied to set_device isnt permited";
 
-throws_ok { $rgraph0->set_devargs({ fake => 'px'})} qr/ERROR: key=fake/, 
-    "TESTING DIE ERROR when arg.key used for set_devargs() isnt permited";
+throws_ok { $rgraph0->set_device({ bmp => 'fake'})} qr/ERROR: arg. href./, 
+    "TESTING DIE ERROR when value supplied to set_device isnt a HASHREF";
 
 throws_ok { $rgraph0->set_grparams('fake')} qr/ERROR: fake for/, 
     "TESTING DIE ERROR when arg supplied to set_grparams isnt a HASHREF";
 
-throws_ok { $rgraph0->set_grparams({ fake => 'px'})} qr/ERROR: fake isnt/, 
-    "TESTING DIE ERROR when arg.key used for set_grparams() isnt permited";
+throws_ok { $rgraph0->set_grparams({ fake => 'px'})} qr/ERROR: 'par'/, 
+    "TESTING DIE ERROR when par key was not used for set_grparams()";
 
-throws_ok { $rgraph0->set_sgraph('fake')} qr/ERROR: fake isnt permited/, 
-    "TESTING DIE ERROR when arg supplied to set_sgraph isnt a permited sgraph";
+throws_ok { $rgraph0->set_grparams({ par => 'px'})} qr/ERROR: hashref. arg./, 
+    "TESTING DIE ERROR when par value used for set_grparams() isnt HASHREF";
 
-throws_ok { $rgraph0->set_sgrargs('fake')} qr/ERROR: fake for/, 
-    "TESTING DIE ERROR when arg supplied to set_sgrargs isnt a HASHREF";
+throws_ok { $rgraph0->set_grparams({ par => {fk => 1} })} qr/ERROR: fk isnt/, 
+    "TESTING DIE ERROR when arg. for par used at set_grparams() isnt permited";
 
-$rgraph0->set_rbase('');
-throws_ok { $rgraph0->set_sgrargs({ col => "red"})} qr/ERROR: Rbase/, 
-    "TESTING DIE ERROR when rbase was not set before run set_sgrargs()";
-$rgraph0->set_rbase($rbase0);
+throws_ok { $rgraph0->set_sgraph('fake')} qr/ERROR: fake supplied to/, 
+    "TESTING DIE ERROR when arg supplied to set_sgraph isnt a HASHREF";
 
-$rgraph0->set_sgraph('');
-throws_ok { $rgraph0->set_sgrargs({ col => "red"})} qr/ERROR: Sgraph/, 
-    "TESTING DIE ERROR when sgraph was not set before run set_sgrargs()";
-$rgraph0->set_sgraph('plot');
+throws_ok { $rgraph0->set_sgraph({ fake => {}})} qr/ERROR: fake isnt/, 
+    "TESTING DIE ERROR when function supplied to set_sgraph isnt permited";
 
-throws_ok { $rgraph0->set_sgrargs({ fake => "red"})} qr/ERROR: key=fake/, 
-    "TESTING DIE ERROR when arg.key used for set_sgrargs() isnt permited";
+throws_ok { $rgraph0->set_sgraph({ plot => 'fk'})} qr/ERROR: hashref. arg./, 
+    "TESTING DIE ERROR when arg for function supplied to set_sgraph isnt HREF";
 
-throws_ok { $rgraph0->set_gritems('fake')} qr/ERROR: fake for/, 
+throws_ok { $rgraph0->set_gritems('fake')} qr/ERROR: fake /, 
     "TESTING DIE ERROR when arg supplied to set_gritems isnt an ARRAYREF";
 
-$rgraph0->set_rbase('');
-throws_ok { $rgraph0->set_gritems([{ func => 'title' }])} qr/ERROR: Rbase/, 
-    "TESTING DIE ERROR when rbase was not set before run set_gritems()";
-$rgraph0->set_rbase($rbase0);
+throws_ok { $rgraph0->set_gritems(['fake'])} qr/ERROR: fake array/, 
+    "TESTING DIE ERROR when aref member supplied to set_gritems isnt a HASHREF";
 
-throws_ok { $rgraph0->set_gritems(['fake'])} qr/ERROR: fake array member/, 
-    "TESTING DIE ERROR when an array member supplied to set_gritems isnt HREF";
+throws_ok { $rgraph0->set_gritems([{ fk => 1 }])} qr/ERROR: fk isnt a perm/, 
+    "TESTING DIE ERROR when function supplied to set_gritems isnt permited";
 
-throws_ok { $rgraph0->set_gritems([{ data => 'title' }])} qr/ERROR: key='func/, 
-    "TESTING DIE ERROR when key='func' doesnt exist for an el. set_gritems()";
+throws_ok { $rgraph0->set_gritems([{ axis => 1 }])} qr/ERROR: value/, 
+    "TESTING DIE ERROR when funct.arg supplied to set_gritems isnt a HASHREF";
 
-throws_ok { $rgraph0->set_gritems([{ func => 'fake' }])} qr/ERROR: fake/, 
-    "TESTING DIE ERROR when non permited R function is used for set_gritems()";
-
-throws_ok { $rgraph0->set_gritems([{ func => 'axis', data => 1 }])} qr/'data'/, 
-    "TESTING DIE ERROR when 'data' format used for set_gritems() isnt AREF";
-
-throws_ok { $rgraph0->set_gritems([{ func => 'axis', args => 1 }])} qr/'args'/, 
-    "TESTING DIE ERROR when 'args' format used for set_gritems() isnt HREF";
-
-throws_ok { $rgraph0->set_gritems([{ func => 'axis', 
-				     args => { fake => 1 } }])} qr/ERROR: fak/, 
-    "TESTING DIE ERROR when 'args' key used for set_gritems() isnt permited";
-
-throws_ok { $rgraph0->set_datamatrix('fake')} qr/ERROR: fake supplied/, 
-    "TESTING DIE ERROR when arg supp. set_datamatrix isnt YapRI::Data::Matrix";
 
 
 ########################
 ## INTERNAL FUNCTIONS ##
 ########################
 
-## Test _no_empty, TEST 48 to 53
-
-my @noempty = qw/ rbase datamatrix grfile device sgraph/;
-
-foreach my $noem (@noempty) {
-    my $nogetfunc = 'get_' . $noem;
-    my $nosetfunc = 'set_' . $noem;
-    my $nocat = $rgraph0->$nogetfunc();   ## get the accessor
-    $rgraph0->$nosetfunc('');             ## replace by empty value
-    
-    throws_ok { $rgraph0->_no_empty()} qr/ERROR: $noem accessor is empty/, 
-    "TESTING DIE ERROR when requested accessor is empty for _no_empty ($noem)";
-
-    $rgraph0->$nosetfunc($nocat);         ## restore the original data
-}
-
-## Extra check, the matrix should have 0 data
-
-throws_ok { $rgraph0->_no_empty()} qr/ERROR: datamatrix object/, 
-    "TESTING DIE ERROR when datamatrix has 0 data for _no_empty";
-
-
 ## To continue it will add data to the matrix0
 
-$rmatrix0->set_name('fruit_exp1');
-$rmatrix0->set_coln(3);
-$rmatrix0->set_rown(10);
-$rmatrix0->set_colnames(['mass', 'length', 'width']);
-$rmatrix0->set_rownames(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']);
-$rmatrix0->set_data( [ 120, 23, 12, 126, 24, 19, 154, 28, 18, 109, 28, 24,
+$rdata0->{x}->set_coln(3);
+$rdata0->{x}->set_rown(10);
+$rdata0->{x}->set_colnames(['mass', 'length', 'width']);
+$rdata0->{x}->set_rownames(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']);
+$rdata0->{x}->set_data( [ 120, 23, 12, 126, 24, 19, 154, 28, 18, 109, 28, 24,
 		      98, 19, 10, 201, 17, 37, 165, 29, 34, 178, 15, 25,
 		      139, 11, 32, 78, 13, 23 ] );
 
-## Check _device_cmd
 
-my $exp_devcmd = 'bmp(filename="filetest", height=200, units="px", width=150)';
-is($rgraph0->_device_cmd(), $exp_devcmd, 
-   "testing _device_cmd, command constructor, checking command line")
+## Check by parts, _rbase_check TEST 39
+
+$rgraph0->set_rbase('');
+throws_ok { $rgraph0->_rbase_check() } qr/ERROR: Rbase is empty./, 
+    "TESTING DIE ERROR when rbase is empty for _rbase_check()";
+
+
+## _block_check, TEST 40 to 43
+
+throws_ok { $rgraph0->_block_check() } qr/ERROR: Rbase is empty./, 
+    "TESTING DIE ERROR when rbase is empty for _block_check()";
+
+$rgraph0->set_rbase($rbase0);
+
+
+is( $rgraph0->_block_check() =~ /GRAPH_BUILD_/, 1, 
+    "testing _block_check for undef value, checking default block name")
     or diag("Looks like this has failed");
 
-## Check _par_cmd
+my %blocks0 = %{$rbase0->get_cmdfiles()};
 
-my $exp_parcmd = 'par(bg="transparent", cex=1, lab=c(5, 5, 7), xpd=FALSE)';
-is($rgraph0->_par_cmd(), $exp_parcmd, 
-   "testing _par_cmd, command constructor, checking command line")
+is( $blocks0{'TESTBL1'}, undef, 
+    "testing _block_check for def. new value, checking that block doesnt exist")
+    or diag("Looks like this has failed");
+
+$rgraph0->_block_check('TESTBL1');
+my %blocks1 = %{$rbase0->get_cmdfiles()};
+
+is( defined($blocks1{'TESTBL1'}), 1, 
+    "testing _block_check for def. new value, checking block creation")
     or diag("Looks like this has failed");
 
 
-## Check is_grdevice_enabled, 
+## _sgraph_check, TEST 44 and 45
 
-my $tblock0 = 'TestDevice0';
-$rbase0->create_block($tblock0);
-$rbase0->add_command($exp_devcmd, $tblock0);
+$rgraph0->set_sgraph({});
 
-is( $rgraph0->is_grdevice_enabled('bmp', $tblock0), 1,
-    "Testing is_grdevice_enabled for enabled block, checking boolean")
+throws_ok { $rgraph0->_sgraph_check() } qr/ERROR: Sgraph doesnt/, 
+    "TESTING DIE ERROR when sgraph is empty for _sgraph_check()";
+
+$rgraph0->set_sgraph({ plot => {}, barplot => {} });
+
+is($rgraph0->_sgraph_check, 'barplot', 
+    "testing _sgraph_check with more than onwe funtion, checking return")
     or diag("Looks like this has failed");
 
-$rbase0->add_command('dev.off()', $tblock0);
 
-is( $rgraph0->is_grdevice_enabled('bmp', $tblock0), 0,
-    "Testing is_grdevice_enabled for disabled block, checking boolean")
-    or diag("Looks like this has failed");
 
-$rbase0->delete_cmdfile($tblock0);
+my $block0 = $rgraph0->build_graph();
+my %blocks2 = %{$rbase0->get_cmdfiles()};     
 
-throws_ok { $rgraph0->is_grdevice_enabled()} qr/ERROR: No device/, 
-    "TESTING DIE ERROR when no device was supplied to is_device_enabled";
 
-throws_ok { $rgraph0->is_grdevice_enabled('bmp')} qr/ERROR: No block/, 
-    "TESTING DIE ERROR when no block was supplied to is_device_enabled";
 
-throws_ok { $rgraph0->is_grdevice_enabled('bmp', $tblock0)} qr/ERROR: TestDev/, 
-    "TESTING DIE ERROR when block supplied to is_device_enabled isnt defined";
+print STDERR "\n\n\n\n";
 
+open my $tfh, '<', $blocks2{$block0};
+while(<$tfh>) {
+    print STDERR "$_";
+} 
 
 
 ############################

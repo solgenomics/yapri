@@ -70,15 +70,19 @@ The following class methods are implemented:
 
   Args: A hash reference with the following parameters:
         rbase   => A YapRI::Base object
+        rdata   => A hash reference with key=R_obj_name, 
+                                         value=YapRI::Data::Matrix object
         grfile  => A filename
-        device  => a scalar, a R grDevice 
-        devargs => a hash ref. with grDevice arguments.
-        grparam => a hash ref. with graphical parameters for 'par' R function
-        sgraph  => a scalar, a R high-level plotting command (example: hist)
-        sgrargs => a hash ref. with R plot function args.
-        gritems => a hash ref. with key=R low-level plotting command and
-                                    val=hash ref. with args. for that command.
-        datamatrix => A YapRI::Data::Matrix object 
+        device  => A hash reference with: key='grDevice name'
+                                          value=HASHREF. with grDevice args.
+        grparam => a hash reference with: key='par'
+                                          value=HASHREF. with par values.
+        sgraph  => A hash reference with: key='high-level plotting function'
+                                          value=HASHREF. with plotting args
+        gritems => An array ref. of hash references with:
+                                key='R low-level plotting command'
+                                val='hash ref. with args. for that command'
+        
         
         
   Side_Effects: Die if the argument used is not a hash or its values arent 
@@ -98,14 +102,12 @@ sub new {
 
     my %permargs = (
 	rbase      => 'YapRI::Base',
+	rdata      => {},
 	grfile     => '\w+',
-	device     => '\w+',
-	devargs    => {},
+	device     => {},
 	grparams   => {},
-	sgraph     => '\w+',
-	sgrargs    => {},
+	sgraph     => {},
 	gritems    => [],
-	datamatrix => 'YapRI::Data::Matrix',
 	);
 
     ## Check variables.
@@ -138,14 +140,12 @@ sub new {
     }
 
     my %defargs = ( 
-	1 => [ 'grfile',     'grfile_' . random_regex('\w\w\w\w\w\w')       ],
-	2 => [ 'device',     'bmp'                                          ],
-	3 => [ 'devargs',    { width => 600, height => 600, units => "px" } ],
-	4 => [ 'grparams',   {}                                             ],
-	5 => [ 'sgraph',     'barplot'                                      ],
-	6 => [ 'sgrargs',    {}                                             ],
-	7 => [ 'gritems',    []                                             ],
-        8 => [ 'datamatrix', ''                                             ],
+	1 => [ 'rdata',    {}                                       ],
+	2 => [ 'grfile',   'grfile_' . random_regex('\w\w\w\w\w\w') ],
+	3 => [ 'device',   { 'bmp'  => {} }                         ],
+	4 => [ 'grparams', { 'par'  => {} }                         ],
+	5 => [ 'sgraph',   { 'plot' => {} }                         ],
+	6 => [ 'gritems',  []                                       ],
 	);
     
     foreach my $idx (sort {$a <=> $b} keys %defargs) {
@@ -225,7 +225,8 @@ sub set_rbase {
   Usage: my $grfile = $rgraph->get_grfile();
          $rgraph->set_grfile($grfile);
 
-  Desc: Get or set the grfile accessor
+  Desc: Get or set the grfile accessor.
+        It always will overwrite the filename argument for grDevice.
 
   Ret: Get: $grfile, a scalar, a filename
        Set: none
@@ -235,6 +236,7 @@ sub set_rbase {
         
   Side_Effects: Get: None
                 Set: Die if no grfile is supplied
+                     Overwrite filename for grDevice
 
   Example: my $grfile = $rgraph->get_grfile();
            $rgraph->set_grfile('myfile.bmp');
@@ -255,29 +257,94 @@ sub set_grfile {
 	croak("ERROR: No grfile object was supplied to set_grfile()");
     }
 
+    ## Overwrite filename for grDevice accessor
+
+    my $devhref = $self->get_device();
+    if (defined $devhref) {
+	foreach my $dev (keys %{$devhref}) {
+	    $devhref->{$dev}->{filename} = $grfile;
+	}
+    }
+
     $self->{grfile} = $grfile;
+}
+
+
+=head2 get/set_rdata
+
+  Usage: my $rdata_href = $rgraph->get_rdata();
+         $rgraph->set_rdata($rdata_href);
+
+  Desc: Get or set the rdata accessor
+
+  Ret: Get: $rdata_href, a hash ref. with key   = R.obj.name, 
+                                          value = YapRI::Data::Matrix
+       Set: none
+
+  Args: Get: none
+        Set: $rdata_href, a hash ref. with key   = R.obj.name, 
+                                           value = YapRI::Data::Matrix
+        
+  Side_Effects: Get: None
+                Set: Die if arg. supplied is not a hash reference or it dont
+                     have YapRI::Data::Matrix objects.
+
+  Example: my %rdata = %{$rgraph->get_rdata()};
+           $rgraph->set_rdata({ ra => YapRI::Data::Matrix->new() });
+                    
+=cut
+
+sub get_rdata {
+    my $self = shift;
+    return $self->{rdata};
+}
+
+sub set_rdata {
+    my $self = shift;
+    my $rdata = shift ||
+	croak("ERROR: No rdata hash ref. was supplied to set_rdata()");
+    
+    unless (ref($rdata) eq 'HASH') {
+	croak("ERROR: Rdata href. supplied to set_rdata() isnt a HASHREF.");
+    }
+    else {
+	foreach my $key (keys %{$rdata}) {
+	    my $val = $rdata->{$key};
+	    if (ref($val) ne 'YapRI::Data::Matrix') {
+		croak("ERROR: $val supplied to set_rdata() isnt rdata object");
+	    }
+ 	}
+    }
+
+    $self->{rdata} = $rdata;
 }
 
 
 =head2 get/set_device
 
-  Usage: my $device = $rgraph->get_device();
-         $rgraph->set_device($device);
+  Usage: my $device_href = $rgraph->get_device();
+         $rgraph->set_device($device_href);
 
-  Desc: Get or set the device accessor
+  Desc: Get or set the device accessor.
+        Permited grDevices: bmp, tiff, jpeg, png, pdf, postscript 
 
-  Ret: Get: $device, a R grDevice (bmp, jpeg, tiff, png)
+  Ret: Get: $device_href, a hash ref. with key=R.grDevice (bmp, tiff...)
+                                           val=HASHREF with arguments
        Set: none
 
   Args: Get: none
-        Set: $device, a R grDevice (bmp, jpeg, tiff, png)
+        Set: $device_href, a hash ref. with key=R.grDevice (bmp, tiff...)
+                                            val=HASHREF with arguments
         
   Side_Effects: Get: None
-                Set: Die if no device is supplied or if it isnt the permited
-                     list
+                Set: Die if no hash ref. is supplied.
+                     Die if grDevice isnt a permited device.
+                     Die if the hashref. arguments isnt a hashref.
+                     filename argument always will be overwrite for grfile
+                     accessor.
 
-  Example: my $device = $rgraph->get_device();
-           $rgraph->set_device('tiff');
+  Example: my $device_href = $rgraph->get_device();
+           $rgraph->set_device({ tiff => {} });
           
           
 =cut
@@ -289,101 +356,44 @@ sub get_device {
 
 sub set_device {
     my $self = shift;
-    my $dev = shift;
+    my $devhref = shift ||
+	croak("ERROR: No device href. was supplied to set_device");
     
-    unless (defined $dev) {
-	croak("ERROR: No device object was supplied to set_device()");
+    unless (ref($devhref) eq 'HASH') {
+	croak("ERROR: Device href. supplied to set_device isnt a HASHREF.");
     }
 
-    my %permdev = ( bmp => 1, jpeg => 1, tiff => 1, png => 1 );
-    
-    if ($dev =~ m/./) {
-	unless (exists $permdev{$dev}) {
-	    my $list = join(',', keys %permdev);
-	    croak("ERROR: $dev isnt permited device ($list) for set_device()");
+    my %permdev = ( bmp        => 1, 
+		    jpeg       => 1, 
+		    tiff       => 1, 
+		    png        => 1, 
+		    pdf        => 1,
+		    postscript => 1 );
+
+    ## Check device and argument format
+
+    foreach my $key (keys %{$devhref}) {
+	unless (exists $permdev{$key}) {
+	    my $pl = join(', ', keys %permdev);
+	    croak("ERROR: $key isnt permited R grDevice ($pl) for set_device");
 	}
-    }
-    
-    $self->{device} = $dev;
-}
-
-=head2 get/set_devargs
-
-  Usage: my $devargs_href = $rgraph->get_devargs();
-         $rgraph->set_devargs($devargs_href);
-
-  Desc: Get or set the device arguments accessor.
-        Use help(bmp) at the R terminal for more info.
-
-q  Ret: Get: $devargs_href, a hash reference (see below)
-       Set: none
-
-  Args: Get: none
-        Set: $device_href, a hash reference.
-
-  Side_Effects: Get: None
-                Set: Die if no device argument is supplied.
-                     Die if it isnt a hash reference
-                     Die if device or rbase were not set before.
-                     Die if it use a no-permited argument pair. It will get
-                     the permited values using YapRI::Base::r_function_args 
-                     function from device as R function
-
-  Example: my %dev_args = %{$rgraph->get_devargs()};
-           $rgraph->set_device({ width => 500, height => 500 });
-          
-          
-=cut
-
-sub get_devargs {
-    my $self = shift;
-    return $self->{devargs};
-}
-
-sub set_devargs {
-    my $self = shift;
-    my $devargs_href = shift ||
-	croak("ERROR: No devargs was supplied to set_devargs()");
-
-    if ($devargs_href =~ m/./) {  ## It is not empty
-	unless (ref($devargs_href) eq 'HASH') {
-	    croak("ERROR: $devargs_href for set_devargs() isnt a HASH REF.");
-	}
-    }
-
-    my %devs = %{$devargs_href};
-    
-    if (scalar(keys %devs) > 0) { ## Means that it isnt empty
-
-	## Check if rbase and device are defined
-
-	my $rbase = $self->get_rbase();
-	unless ($rbase =~ m/\w+/) {
-	    croak("ERROR: Rbase was not set before set_devargs. Method fails");
-	}
-
-	my $device = $self->get_device();
-	unless ($device =~ m/\w+/) {
-	    croak("ERROR: Device was not set before set_devargs. Method fails");
-	}
-
-	## Get args for the R function defined for device, deleting filename
-
-	my %permargs = $rbase->r_function_args($device);;
-	delete($permargs{filename});               ## defined for grfile args
-    
-
-	foreach my $karg (keys %devs) {
-	    unless (exists $permargs{$karg}) {
-		my $l = "(device=$device, args=".join(',', keys %permargs).")";
-		croak("ERROR: key=$karg for set_devargs() isnt permited $l");
+	else {
+	    unless (ref($devhref->{$key}) eq 'HASH') {
+		croak("ERROR: arg. href. for $key grDevice isnt a HASHREF.");
 	    }
 	}
     }
-    
-    $self->{devargs} = $devargs_href;
-}
 
+    ## Overwrite filename with grFile
+
+    if ($self->get_grfile =~ m/./) {                       ## It isnt empty
+	foreach my $kdev (keys %{$devhref}) {
+	    $devhref->{$kdev}->{filename} = $self->get_grfile();
+	}
+    }
+    
+    $self->{device} = $devhref;
+}
 
 =head2 get/set_grparams
 
@@ -406,7 +416,7 @@ sub set_devargs {
                      Die if it doesnt use a permited parameter
 
   Example: my %grparams = %{$rgraph->get_grparam()};
-           $rgraph->set_grparams({});
+           $rgraph->set_grparams({ par => { cex => 0.5 } });
           
           
 =cut
@@ -419,15 +429,30 @@ sub get_grparams {
 sub set_grparams {
     my $self = shift;
     my $grparam_href = shift ||
-	croak("ERROR: No grparams were supplied to set_grparam()");
+	croak("ERROR: No grparams were supplied to set_grparams()");
 
-    if ($grparam_href =~ m/./) {  ## It is not empty
-	unless (ref($grparam_href) eq 'HASH') {
-	    croak("ERROR: $grparam_href for set_grparam() isnt a HASH REF.");
+    my %grparam = ();
+
+    ## Check formats
+    
+    unless (ref($grparam_href) eq 'HASH') {
+	croak("ERROR: $grparam_href for set_grparams() isnt a HASHREF.");
+    }
+    else {
+	if (scalar(keys %{$grparam_href}) > 0) {
+	    unless (exists $grparam_href->{par}) {
+		croak("ERROR: 'par' doesnt exist for set_grparams argument");
+	    }
+	    else {
+		if (ref($grparam_href->{par}) ne 'HASH') {
+		    croak("ERROR: hashref. arg. for 'par' isnt HASHREF.");
+		}
+	    }
+	    %grparam = %{$grparam_href->{par}};
 	}
     }
 
-    my %grparam = %{$grparam_href};
+    
 
     ## Define the graphical parameters permited (it cannot be catched with
     ## r_function_args function)
@@ -445,7 +470,6 @@ sub set_grparams {
 	$permgrp{$perm} = 1;
     }
 
-
     foreach my $param (keys %grparam) {
 	unless (exists $permgrp{$param}) {
 	    my $t = "Use in the R terminal help(par) for more information.";
@@ -460,25 +484,28 @@ sub set_grparams {
 
 =head2 get/set_sgraph
 
-  Usage: my $sgraph = $rgraph->get_sgraph();
-         $rgraph->set_sgraph($sgraph);
+  Usage: my $sgraph_href = $rgraph->get_sgraph();
+         $rgraph->set_sgraph($sgraph_href);
 
-  Desc: Get or set the simple graph accessor
+  Desc: Get or set the simple graph accessor.
+        Permited high-level plot commands are: plot, pairs, hist, dotchart, 
+        barplot, pie and boxplot.
 
-  Ret: Get: $sgraph, a R simple graph function (high-level plot command)
-            (plot, pairs, coplot, hist, dotchart, barplot, pie, boxplot)
+  Ret: Get: $sgraph_href, a hashref. with key=high-level plot command.
+                                          val=HASHREF. with plot arguments.
        Set: none
 
   Args: Get: none
-        Set: $sgraph, a R simple graph function (high-level plot command)
-            (plot, pairs, coplot, hist, dotchart, barplot, pie, boxplot)
+        Set: $sgraph_href, a hashref. with key=high-level plot command.
+                                          val=HASHREF. with plot arguments.
         
   Side_Effects: Get: None
                 Set: Die if no sgraph is supplied or if it isnt the permited
-                     list
+                     list.
+                     Die if argument hashref. isnt a hashref.
 
   Example: my $sgraph = $rgraph->get_sgraph();
-           $rgraph->set_sgraph('barplot');
+           $rgraph->set_sgraph({ barplot => { beside => 'TRUE' } } );
           
           
 =cut
@@ -490,16 +517,16 @@ sub get_sgraph {
 
 sub set_sgraph {
     my $self = shift;
-    my $sgraph = shift;
+    my $sgraph_href = shift ||
+	croak("ERROR: No sgraph hashref. arg. was supplied to set_sgraph");
  
-    unless (defined $sgraph) {
-	croak("ERROR: No sgraph arg. was supplied to set_sgraph()");
+    if (ref($sgraph_href) ne 'HASH') {
+	croak("ERROR: $sgraph_href supplied to set_sgraph() isnt HASHREF.");
     }
 
     my %permgraph = ( 
 	plot     => 1,
 	pairs    => 1,
-	coplot   => 1,
 	hist     => 1, 
 	dotchart => 1, 
 	barplot  => 1, 
@@ -507,95 +534,19 @@ sub set_sgraph {
 	boxplot  => 1
 	);
 
-    if ($sgraph =~ m/./) {
+    foreach my $sgraph (keys %{$sgraph_href}) {
 	unless (exists $permgraph{$sgraph}) {
 	    my $l = join(',', keys %permgraph);
 	    croak("ERROR: $sgraph isnt permited sgraph ($l) for set_sgraph()");
 	}
+	else {
+	    if (ref($sgraph_href->{$sgraph}) ne 'HASH') {
+		croak("ERROR: hashref. arg. for sgraph=$sgraph isnt a hashref.")
+	    }
+	}
     }
     
-    $self->{sgraph} = $sgraph;
-}
-
-=head2 get/set_sgrargs
-
-  Usage: my $sgrargs_href = $rgraph->get_sgrargs();
-         $rgraph->set_sgrargs($sgrargs_href);
-
-  Desc: Get or set the simple graph arguments accessor.
-        Use help() with a concrete sgraph at the R terminal for more info.
-
-  Ret: Get: $sgrargs, a hash reference with args. for sgraph (high level plot)
-       Set: none
-
-  Args: Get: none
-        Set: $sgrargs_href, a hash reference with args. for sgraph
-
-  Side_Effects: Get: None
-                Set: Die if no simple graph argument is supplied.
-                     Die if it isnt a hash reference
-                     Die if sgraph argument was not set before
-                     Die if it use a no-permited argument pair. It will get
-                     the permited values using YapRI::Base::r_function_args 
-                     function from sgraph as R function
-
-  Example: my %sgrargs = %{$rgraph->get_sgrargs()};
-           $rgraph->set_sgrargs({ width => 2, space => 0.5 });
-          
-          
-=cut
-
-sub get_sgrargs {
-    my $self = shift;
-    return $self->{sgrargs};
-}
-
-sub set_sgrargs {
-    my $self = shift;
-    my $sgrargs_href = shift ||
-	croak("ERROR: No sgrargs were supplied to set_sgrargs()");
-
-    if ($sgrargs_href =~ m/./) {  ## It is not empty
-	unless (ref($sgrargs_href) eq 'HASH') {
-	    croak("ERROR: $sgrargs_href for set_sgrargs() isnt a HASH REF.");
-	}
-    }
-
-    my %sgrargs = %{$sgrargs_href};
-
-    ## Check if rbase and device are defined, if sgraph has arguments 
-
-    if (scalar(keys %sgrargs)) {
-
-	my $rbase = $self->get_rbase();
-	unless ($rbase =~ m/\w+/) {
-	    croak("ERROR: Rbase was not set before set_sgrargs. Method fails");
-	}
-
-	my $sgraph = $self->get_sgraph();
-	unless ($sgraph =~ m/\w+/) {
-	    croak("ERROR: Sgraph was not set before set_sgrargs. Method fails");
-	}
-
-	## Get args for the R function defined for sgraph, deleting the 
-	## arguments without values (usually input.data)
-
-	my %permargs = $rbase->r_function_args($sgraph);
-	foreach my $parg (keys %permargs) {
-	    if ($permargs{$parg} eq '<without.value>') {
-		delete($permargs{$parg});
-	    }
-	}    
-
-	foreach my $karg (keys %sgrargs) {
-	    unless (exists $permargs{$karg}) {
-		my $l = "sgraph=$sgraph, args=" . join(',', keys %permargs);
-		croak("ERROR: key=$karg at set_sgrargs() isnt permited\n($l)");
-	    }
-	}
-    }
-        
-    $self->{sgrargs} = $sgrargs_href;
+    $self->{sgraph} = $sgraph_href;
 }
 
 
@@ -614,10 +565,9 @@ sub set_sgrargs {
        Set: none
 
   Args: Get: none
-        Set: $gritems, an array reference of hash references with 3 elements:
-              func => R low-level plotting function (example: points)
-              data => input data array refs for R function (example: [2, 4])
-              args => hash ref. of args. for R function (example:{col => "red"})
+        Set: $gritems, an array reference of hash references with:
+                         key=R low-level plotting function
+                         val=args. for that low-level func.
 
   Side_Effects: Get: None
                 Set: Die if no gritem argument is supplied (empty hash ref.
@@ -633,16 +583,11 @@ sub set_sgrargs {
 
   Example: my %gritems = %{$rgraph->get_gritems()};
            $rgraph->set_gritems([ 
-                                  { 
-                                    func => 'points',
-                                    data => [2, 5],
-                                    args => { cex => 0.5, col => "dark red" },
-                                  } 
-                                  { 
-                                    func => 'legend',
-                                    data => [25, 50, ["exp1", "exp2", "exp3"]],
-                                    args => { bg => "gray90" },
-                                  } 
+                                  { points => { x => [2, 5], col => "red" },    
+                                  { legend => { x  => 25, 
+                                                y  => 50, 
+                                                leg => ["exp1", "exp2", "exp3"],
+                                                bg => "gray90" } 
                                 ]);
           
           
@@ -658,10 +603,8 @@ sub set_gritems {
     my $gritems_aref = shift ||
 	croak("ERROR: No gritems arg. were supplied to set_gritems()");
 
-    if ($gritems_aref =~ m/./) {  ## It is not empty
-	unless (ref($gritems_aref) eq 'ARRAY') {
-	    croak("ERROR: $gritems_aref for set_gritems() isnt a HASH REF.");
-	}
+    unless (ref($gritems_aref) eq 'ARRAY') {
+	croak("ERROR: $gritems_aref for set_gritems() isnt a HASH REF.");
     }
     
     my @grit = @{$gritems_aref};
@@ -670,26 +613,19 @@ sub set_gritems {
 
     if (scalar(@grit) > 0) {
 
-	my $rbase = $self->get_rbase();
-	unless ($rbase =~ m/\w+/) {
-	    croak("ERROR: Rbase was not set before set_sgritems. Method fails");
-	}
-
 	## Define the permited items, and the additional args. 
 
 	my %permitems = ( 
-	    points  => ['pch', 'col', 'bg', 'cex', 'lwd', 'lty'],
-	    lines   => ['lty', 'lwd', 'col', 'pch', 'lend', 'ljoin', 'lmitre'],
-	    abline  => ['lty', 'lwd', 'col', 'lend', 'ljoin', 'lmitre'],,
-	    polygon => ['xpd', 'lend', 'ljoin', 'lmitre'], 
-	    legend  => [],
-	    title   => ['adj', 'xpd', 'mpg', 'font.main', 'col.main', 
-			'font.sub', 'col.sub', 'font.xlab', 'col.xlab', 
-			'font.ylab', 'col.ylab', 'cex.main', 'cex.sub', 
-			'cex.xlab', 'cex.ylab' ], 
-	    axis    => ['cex.axis', 'col.axis', 'font.axis', 'mpg', 'xaxp', 
-			'yaxp', 'tck', 'tcl', 'las', 'fg', 'xaxt', 'yaxt'],
+	    points  => 1,
+	    lines   => 1,
+	    abline  => 1,
+	    polygon => 1,
+	    legend  => 1,
+	    title   => 1,
+	    axis    => 1,
 	    );
+
+	my $lp = join(', ', keys %permitems);
 
 	## Check args. as items and item args.
 
@@ -698,52 +634,17 @@ sub set_gritems {
 	    if (ref($fref) ne 'HASH') {
 		croak("ERROR: $fref array member for set_gritems isnt HREF");
 	    }
-	    my %grfunc = %{$fref};
-	    
-	    unless (defined $grfunc{func}) {
-		croak("ERROR: key='func' isnt defined for hashref set_gritems");
-	    }
 	    else {
-
-		my $it = $grfunc{func};
-		unless (exists $permitems{$it}) {
-		    my $l = join(',', keys %permitems);
-		    croak("ERROR: $it isnt perm.item list ($l) to set_gritems");
-		}
-		else {
-
-		    my $err = "for $it at set_gritems isnt ";
-		    ## check arrayref for 'data'
-		    if (defined $grfunc{data}) {
-			unless (ref($grfunc{data}) eq 'ARRAY') {
-			    croak("ERROR: 'data' " . $err . "ARRAYREF")
+		foreach my $func (keys %{$fref}) {
+		    unless (exists $permitems{$func}) {
+			croak("ERROR: $func isnt a permited gritem ($lp).");
+		    }
+		    else {
+			unless (ref($fref->{$func}) eq 'HASH') {
+			    croak("ERROR: value for gritem=$fref isnt HASHREF");
 			}
 		    }
-
-		    my $args = $grfunc{args};
-
-		    ## check hashref for 'args'
-		    unless (ref($args) eq 'HASH') {
-			croak("ERROR: 'args' " . $err . "HASHREF");
-		    }
-	    
-		    ## get args for R function
-		    my %fargs = $rbase->r_function_args($it);
-	    
-		    ## add the additional args.
-		    my @adargs = @{$permitems{$it}};
-		    foreach my $adarg (@adargs) {
-			$fargs{$adarg} = 1;
-		    }
-	    
-		    ## check args
-		    my $pl = "Args. for $it: (" . join(',', keys %fargs) . ")"; 
-		    foreach my $ag (keys %{$grfunc{args}}) {
-			unless (exists $fargs{$ag}) {
-			    croak("ERROR: $ag isnt perm.arg. for $it\n($pl)\n");
-			}
-		    }
-		}
+		}	
 	    }
 	}
     }
@@ -751,57 +652,15 @@ sub set_gritems {
     $self->{gritems} = $gritems_aref;
 }
 
-=head2 get/set_datamatrix
-
-  Usage: my $matrix = $rgraph->get_datamatrix();
-         $rgraph->set_datamatrix($matrix);
-
-  Desc: Get or set the data matrix into YapRI::Graph::Simple object
-
-  Ret: Get: $matrix, a YapRI::Data::Matrix object
-       Set: none
-
-  Args: Get: none
-        Set: $matrix, a YapRI::Data::Matrix object
-
-  Side_Effects: Die if no argument is used.
-                Die if the object is not a YapRI::Data::Matrix object
-
-  Example: my $matrix = $rgraph->get_datamatrix();
-           $rgraph->set_datamatrix($matrix);
-              
-=cut
-
-sub get_datamatrix {
-    my $self = shift;
-    return $self->{datamatrix};
-}
-
-sub set_datamatrix {
-    my $self = shift;
-    my $mtx = shift;
-
-    unless (defined $mtx) {
-	croak("ERROR: No datamatrix argument was supplied to set_datamatrix()")
-    }
-    else {
-	if ($mtx =~ m/./) {
-	    unless (ref($mtx) eq 'YapRI::Data::Matrix') {
-		croak("ERROR: $mtx supplied to set_datamatrix isnt Matrix obj");
-	    }
-	}
-    }
-    $self->{datamatrix} = $mtx;
-}
 
 
 ###################
 ## MIX FUNCTIONS ##
 ###################
 
-=head2 is_grdevice_enabled
+=head2 is_device_enabled
 
-  Usage: my $enabled = $rgraph->is_grdevice_enabled($device_name, $block)
+  Usage: my $enabled = $rgraph->is_device_enabled($device_name, $block)
 
   Desc: Check if the graphic device is enabled for the current block
 
@@ -813,13 +672,13 @@ sub set_datamatrix {
   Side_Effects: Die if no deice_name or block are supplied.
                 Die if the block supplied doesnt exists in the rbase object
 
-  Example: if ($rgraph->is_grdevice_enabled('bmp', 'BMPE')) {
+  Example: if ($rgraph->is_device_enabled('bmp', 'BMPE')) {
                   print "R Device is enabled\n";
            }
               
 =cut
 
-sub is_grdevice_enabled {
+sub is_device_enabled {
     my $self = shift;
     my $device = shift ||
 	croak("ERROR: No device argument was supplied to is_device_enabled()");
@@ -878,197 +737,211 @@ sub is_grdevice_enabled {
 ## GRAPH METHODS ##
 ###################
 
+=head2 _rbase_check
 
-=head2 _no_empty
+  Usage: $rgraph->_rbase_check();
 
-  Usage: $rgraph->_no_empty($err_message);
+  Desc: Check if Rbase was set. Die if isnt set.
 
-  Desc: Check if all the accessors requested for build_graph contains data
-
-  Ret: None
-
-  Args: $err_message to add to the die message
-
-  Side_Effects: Die if some of the requested accessors are empty
-
-  Example: $rgraph->_no_empty();
-              
-=cut
-
-sub _no_empty {
-    my $self = shift;
-    my $err = shift || '';
-    
-    ## Request checkings
-    
-    my @reqs = ('rbase', 'datamatrix', 'grfile', 'device', 'sgraph');
-    foreach my $req (@reqs) {
-	my $function = 'get_' . $req;
-	my $elem = $self->$function();
-	unless ($elem =~ m/./) {
-	    croak("ERROR: $req accessor is empty. $err");
-	}
-    }
-
-    ## As extra it will check the data in the matrix
-
-    my $data_aref = $self->get_datamatrix()->get_data();
-    unless (scalar(@{$data_aref}) > 0) {
-	croak("ERROR: datamatrix object doesnt contain data. ");
-    }
-}
-
-=head2 _device_cmd
-
-  Usage: my $cmd = $rgraph->_device_cmd();
-
-  Desc: Build the device command
-
-  Ret: $cmd, a string with the device command
+  Ret: $rbase, Rbase object.
 
   Args: None
 
   Side_Effects: None
 
-  Example: my $cmd = $rgraph->_device_cmd();
+  Example: $rgraph->_rbase_check();
               
 =cut
 
-sub _device_cmd {
+sub _rbase_check {
     my $self = shift;
     
-    my $device = $self->get_device();
-    my $grfile = $self->get_grfile();
-
-    my $dev_cmd = $device . '(filename="' . $grfile . '"';
-    
-    my %devargs = %{$self->get_devargs()};
-    foreach my $deva (sort keys %devargs) {
-	
-	$dev_cmd .= ', ' . $deva . '=' . r_var($devargs{$deva});
+    my $rbase = $self->get_rbase();
+    if (ref($rbase) ne 'YapRI::Base') {
+	croak("ERROR: Rbase is empty.");
     }
-    $dev_cmd .= ')';
-
-    return $dev_cmd;
+    return $rbase;
 }
 
+=head2 _block_check
 
-=head2 _par_cmd
+  Usage: my $block = $rgraph->_block_check($block);
 
-  Usage: my $cmd = $rgraph->_par_cmd();
+  Desc: Check if a block exists into rbase object.
+        Create a new block if doesnt exists with that name.
+        Create a new block with name 'GRAPH_BUILD_XXXX if block isnt defined
 
-  Desc: Build the par (graphical parameter) command
-
-  Ret: $cmd, a string with the par command
+  Ret: $block, a block name.
 
   Args: None
 
-  Side_Effects: Return undef if no grparams were set.
+  Side_Effects: None
 
-  Example: my $cmd = $rgraph->_par_cmd();
+  Example: my $block = $rgraph->_block_check($block);
               
 =cut
 
-sub _par_cmd {
+sub _block_check {
     my $self = shift;
+    my $block = shift;
     
-    my %parargs = %{$self->get_grparams()};
-
-    my $cmd;
-
-    if (scalar(keys %parargs)) {  ## Only if it has some graphical parameters
-	
-	$cmd = 'par(';  ## Init the command
-    
-	my @args = ();
-	foreach my $par (sort keys %parargs) {
-	    my $subcmd = $par;
-	    if (defined $parargs{$par}) {
-		$subcmd .= '=' . r_var($parargs{$par});	
-	    }
-	    push @args, $subcmd;
+    my $rbase = $self->_rbase_check();
+    if (defined $block) {
+	my %bcks = %{$rbase->get_cmdfiles()};
+	unless (exists $bcks{$block}) {
+	    $rbase->create_block($block);
 	}
-	$cmd .= join(', ', @args);  ## add the different args 
-    
-	$cmd .= ')';   ## End the command
     }
-
-    return $cmd;
+    else {
+	$block = 'GRAPH_BUILD_' . random_regex('\w\w\w\w');
+	$rbase->create_block($block);
+    }
+    return $block;
 }
 
+=head2 _sgraph_check
 
-=head2 _matrix2sgraph_cmd
+  Usage: my $sgraph = $rgraph->_sgraph_check();
 
-  Usage: my ($cmd, $r_object) = $rgraph->_matrix2sgraph_cmd();
+  Desc: Check if a sgraph exists (accessor isnt empty) into rgraph object.
+        Die if is empty.
 
-  Desc: Build the command to get the data from the matrix
-
-  Ret: $cmd, a string with the par command
-       $r_object, a string with the R object name
+  Ret: $sgraph, sgraph name for high-level plotting function
 
   Args: None
 
-  Side_Effects: Return undef if no grparams were set.
+  Side_Effects: If there are more than one sgraph, order them and return 
+                the first one.
 
-  Example: my $cmd = $rgraph->_par_cmd();
+  Example: my $sgraph = $rgraph->_sgraph_check();
               
 =cut
 
-sub plot_sgraph_block {
+sub _sgraph_check {
+    my $self = shift;
+    
+    my %sgraph = %{$self->get_sgraph()};
+    if (scalar(keys %sgraph) == 0) {
+	croak("ERROR: Sgraph doesnt have set any plot.");
+    }
+    my @sgraphs = sort(keys %sgraph);
+    
+    return $sgraphs[0];
+}
+
+
+
+
+
+=head2 _rdata_loader
+
+  Usage: $rgraph->_rdata_loader($block);
+
+  Desc: Check and load the rdata
+
+  Ret: None
+
+  Args: $block, a block name for rbase
+
+  Side_Effects: Die if no block is used.
+                Die if block doesnt exist in the current rbase
+
+  Example: $rgraph->_rdata_loader($block);
+              
+=cut
+
+sub _rdata_loader {
     my $self = shift;
     my $block = shift ||
-	croak("ERROR: No block was supplied to plot_sgraph_block()");
-    my $rdatafr = shift ||
-	croak("ERROR: No R dataframe was supplied to plot_sgraph_block()");
+	croak("ERROR: No block was supplied to _rdata_loader.");
 
-    ## Define common error message
-    my $err = "Aborting plot_sgraph_block()";
+    ## Get the sgraph data
 
-    my $rbase = $self->get_rbase();
-    my $class = $rbase->r_object_class($block, $rdatafr);
+    my %graphs = %{$self->get_sgraph()};
+    my $sgr = $self->_sgraph_check();
 
-    ## Check that the object is data.frame
+    ## Define the data requeriments for each of the high-level plotting cmds
+    ## dt   => [ 'input.r.obj.name', 'input.r.obj.class' ] for R function
+    ## ncol => [ 'min.ncol' , 'max.col']                   for R function
 
-    unless ($class eq 'data.frame') {
-	croak("ERROR: $rdatafr R object isnt a data.frame. $err");
-    }
+    my %reqs = ( 
+	plot     => { dt => [ 'x',      'dataframe' ], ncol => [ 1, undef ] },
+	pairs    => { dt => [ 'x',      'dataframe' ], ncol => [ 2, undef ] },
+	hist     => { dt => [ 'x',      'matrix'    ], ncol => [ 1, 1     ] },
+	dotchart => { dt => [ 'x',      'matrix'    ], ncol => [ 1, undef ] },	
+	pie      => { dt => [ 'x',      'matrix'    ], ncol => [ 1, 1     ] },
+	boxplot  => { dt => [ 'x',      'matrix'    ], ncol => [ 1, undef ] },
+	barplot  => { dt => [ 'height', 'matrix'    ], ncol => [ 1, undef ] },
+	);
 
-    ## Check if the device is enabled
+    my $sgr_input = $reqs{$sgr}->{dt}[0];
+    my $sgr_class = $reqs{$sgr}->{dt}[1];
 
-    my $ch_block = $rbase->create_block('CheckDeviceEnabled', $block);
-
-
-    ## First get a data.frame for matrix
-
-    my $mtx = $self->get_datamatrix();
-    my $newblock = 'plot_' . $mtx->get_name(); 
-
+    # ## 1.2) Check rdata
     
-    $mtx->send_rbase($rbase, 'dataframe');
-    $rbase->combine_blocks([$block, $mtx->get_name()], $newblock);
+    # my $i_mtx;
+    # my %rdata = %{$self->get_rdata()};
+    # my $dt_objs = scalar(keys %rdata);
 
-    ## Now it will create the cmd and add to the newblock with the
-    ## sgrargs
+    # my $r_dt;
+    # if ($dt_objs == 0) {
+    # 	croak("DATA ERROR: Rdata doesnt have any data. Aborting build_graph.");
+    # }
+    # elsif ($dt_objs == 1) {          ## If there are just one matrix, it will
+    # 	                            ## be the primary data matrix (x or height)
+    # 	my ($dt_r) = keys %rdata;
+    # 	$sgraph{$sgr_f}->{$sgr_input} = { $rdata{$dt_r}->get_name() => '' };
+	
+    # 	## Define the input matrix
+    # 	$i_mtx = $rdata{$dt_r};
+    # }
+    # else {       ## If there are more than one matrix, it  will need to match 
+    #              ## r.obj names with data.input.argument. 
+	
+    # 	unless (exists $rdata{$sgr_input}) {
+    # 	    my $e0 = "ERROR: There are more than one rdata and none has";
+    # 	    croak("$e0 R.obj.input=$sgr_input.")
+    # 	}
+    # 	else {   ## Link the name of the rmatrix with the input.data
+    # 	    my $rdata_obj = $rdata{$sgr_input}->get_name();
+    # 	    $sgraph{$sgr_f}->{$sgr_input} = { $rdata_obj => '' } ;
+    # 	    $i_mtx = $rdata{$sgr_input};
+    # 	}
+    # }
+   
+    # ## 1.3) Check max column
 
-    my $cmd = $self->get_sgraph . '(' . $mtx->get_name();
+    # my $mi_ncol = $sgraph_dt{$sgr_f}->{ncol}[0];
+    # my $ma_ncol = $sgraph_dt{$sgr_f}->{ncol}[1];
+    # my $ncol = $i_mtx->get_coln();
 
-    my %sgrargs = %{$self->get_sgrargs()};
-    foreach my $sgra (keys %sgrargs) {
-	if (defined $sgrargs{$sgra}) {
-	    $cmd .= ',' . $sgra . '=' . r_var($sgrargs{$sgra});
-	}
-	else {
-	    $cmd .= ',' . $sgra;
-	}
-    }
-    $cmd .= ')';
-    
-    ## Add the command
+    # if ($ncol < $mi_ncol) {
+    # 	croak("ERROR: $sgr_f needs at least $mi_ncol cols. $i_mtx has $ncol");
+    # }
 
-    $rbase->add_command($cmd, $newblock);
+    # if (defined $ma_ncol) {	
+    # 	unless ($ncol <= $ma_ncol) {
+    # 	    carp("WARNING: graph=$sgr_f works with 1 col. Matrix has $ncol.");
+    # 	}
+    # }
 
-    return $newblock;
+    # ## 1.4) Create the data object for all the rbase (incluiding i_mtx)
+
+    # foreach my $robj (keys %rdata) {
+    # 	#$rdata{$robj}->send_rbase($rbase, $block, $sgr_class);
+    # }
+
+
 }
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1076,15 +949,7 @@ sub plot_sgraph_block {
 
   Usage: my $filegraph = $rgraph->build_graph();
 
-  Desc: Create some YapRI blocks and run them to create the graph, 
-        in the following order:
-          1) create 'matrix' (datamatrix)
-          2) init 'device' (device)
-          3) pass 'par' graphical parameters (grparams)
-          4) matrix conversions to high-level plotting commands
-          5) execute high-level plotting command (sgraph)
-          6) matrix concersions to low-level plotting commands
-          7) execute low-level plotting commands (gritems)
+  Desc: 
 
   Ret: $filegraph, the name of the graph file 
 
@@ -1098,34 +963,63 @@ sub plot_sgraph_block {
 
 sub build_graph {
     my $self = shift;
+    my $block = shift;
 
+    ## 0) rbase and blocks
+    ##    If block isnt defined, create a new one with default name
+    ##    If block doesnt exist at rbase, create a new one with that name
+    ##    If block exists at rbase, use it and add the commands
 
-    ## Check requested accessors
+    my $rbase = $self->_rbase_check();
+    $block = $self->_block_check($block);
+    
+    ## 1) Create the data objects 
+    ## 1.1) Define data requeriments as: 
+    ##      {graph => data.input.argument => r.obj.class, ncol => [min, max]} 
 
-    $self->_no_empty('Aborting build_graph().');
+    ## Get the sgraph:
+    
+    
+    
+    ## 2) Init. Device
 
-    ## 1) The block will have the name of the matrix
+    ## 2.1) Check grfile and device.
 
-    my $rbase = $self->get_rbase();
-    my $mtx = $self->get_datamatrix();
-
-    my $block1 = $mtx->get_name();
-    $mtx->send_rbase($rbase);
-
-    ## 2) Build the command to init the device and add to the block
-
-    my $dev_cmd = $self->_device_cmd();
-    $rbase->add_command($dev_cmd, $block1);
-
-    ## 3) Build the command with the graphical parameters
-
-    my $par_cmd = $self->_par_cmd();
-    if (defined $par_cmd) {
-	$rbase->add_command($par_cmd, $block1);
+    unless ($self->get_grfile() =~ m/./) {
+	croak("ERROR: Grfile is empty. Aborting build_graph.");
+    }
+    if (scalar( keys %{$self->get_device()}) == 0 ) {
+	croak("ERROR: Device is empty. Aborting build_graph.");
     }
 
-    ## 4) 
+    $rbase->add_command(r_var($self->get_device()), $block);
+    
+    
+    ## 3) Add graphical parameters if exist
 
+    if (scalar( keys %{$self->get_grparams()}) > 0) {
+	$rbase->add_command(r_var($self->get_grparams()), $block);
+    }
+
+    ## 4) Add high level plot
+
+    $rbase->add_command(r_var($self->get_sgraph()), $block);
+
+    ## 5) Add gritems, if exists
+    ##    The rest of the data objects were created during the data creation, 
+    ##    so the items (low-level plot objects, should take the object from 
+    ##    there).
+    
+    ## 6) Create and add the gritems
+
+    my @gritems = @{$self->get_gritems()};
+    foreach my $grit_href (@gritems) {
+	$rbase->add_command(r_var($grit_href), $block);
+    }
+
+    ## Finally return the block
+
+    return $block;
 }
 
 
