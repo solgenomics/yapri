@@ -28,14 +28,68 @@ $VERSION = eval $VERSION;
 
 =head1 SYNOPSIS
 
+  use YapRI::Base;
+  use YapRI::Data::Matrix;
   use YapRI::Graph::Simple;
 
-  
+  ## Create rbase:
+
+  my $rbase = YapRI::Base->new();
+
+  ## Create the data matrix
+
+  my $ymatrix = YapRI::Data::Matrix->new({
+    name     => 'data1',
+    coln     => 10,
+    rown     => 2, 
+    colnames => ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10'],
+    rownames => ['X', 'Y'],
+    data     => [qw/ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 /],
+  });
+
+  ## Create the graph with the graph arguments, a barplot with two series (rows)
+  ## of data per group (cols).
+
+  my $rgraph = YapRI::Graph::Simple->new({
+    rbase  => $rbase,
+    rdata  => { height => $ymatrix },
+    grfile => "MyFile.bmp",
+    device => { bmp => { width => 600, height => 600 } },
+    sgraph => { barplot => { beside => 'TRUE',
+			     main   => 'MyTitle',
+			     xlab   => 'x_axis_label',
+			     ylab   => 'y_axis_label',
+			     col    => ["dark red", "dark blue"],
+              } 
+    },
+  });
+
+  my $block = $rgraph->build_graph();
+  $rgraph->run_graph($block);
 
 
 =head1 DESCRIPTION
 
- 
+ This module is a wrapper of YapRI::Base to create simple graphs using R, 
+ with the following features:
+
+  1) It loads the data from Perl to R using YapRI::Data::Matrix.
+  
+  2) It works with blocks, so it can define a block in the beginning of
+     the module/script and use as base to add the data and the graph creation
+     commands.
+
+  3) It runs the following R commands acording the different accessors:
+      - device:  bmp, jpeg, tiff, png, postscript or pdf.
+      - grparam: par.
+      - sgraph (high-level plotting commands): plot, pairs, hist, dotchart, 
+                                               barplot, pie or boxplot.
+      - gritems (low-level plotting commands): points, lines, abline, polygon, 
+                                               legend, title and axis.
+
+  4) It uses two commands to create the file with the graph:
+     + build_graph(), to write into the YapRI::Base block the R commands.
+     + run_graph(), to executate the R commands from the block.
 
 
 =head1 AUTHOR
