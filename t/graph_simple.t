@@ -30,11 +30,13 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 64;
+use Test::More tests => 61;
 use Test::Exception;
 use Test::Warn;
 
 use Cwd;
+
+use Image::Size;
 
 use FindBin;
 use lib "$FindBin::Bin/../lib";
@@ -244,19 +246,149 @@ is($rgraph0->_sgraph_check, 'barplot',
     "testing _sgraph_check with more than onwe funtion, checking return")
     or diag("Looks like this has failed");
 
+$rgraph0->set_sgraph($sgraph0);
 
+## _rdata_check, TEST 46 to 51
+
+$rgraph0->set_rdata({});
+
+throws_ok { $rgraph0->_rdata_check() } qr/ERROR: No sgraph input R/, 
+    "TESTING DIE ERROR when no sgraph input R was supplied to _rdata_check()";
+
+throws_ok { $rgraph0->_rdata_check('x') } qr/DATA ERROR: Rdata/, 
+    "TESTING DIE ERROR when rdata is empty at _rdata_check()";
+
+my $empmtx = YapRI::Data::Matrix->new({ name => 'empmtx0' });
+
+$rgraph0->set_rdata({ 'test' => $empmtx });
+
+throws_ok { $rgraph0->_rdata_check('x') } qr/ERROR: Matrix=empmtx0 \(/, 
+    "TESTING DIE ERROR when input matrix doesnt have min.ncol _rdata_check()";
+
+$empmtx->set_coln(4);
+
+throws_ok { $rgraph0->_rdata_check('x', 1, 2) } qr/ERROR: Matrix=empmtx0/, 
+    "TESTING DIE ERROR when input matrix exceeds max.ncol _rdata_check()";
+
+$empmtx->set_coln(2);
+
+$rgraph0->set_rdata({ 'test1' => $empmtx,  'test2' => $empmtx });
+
+throws_ok { $rgraph0->_rdata_check('x') } qr/ERROR:There are more/, 
+    "TESTING DIE ERROR when there are more than one input mtx _rdata_check()";
+
+
+$rgraph0->set_rdata($rdata0);
+
+is($rgraph0->_rdata_check('x'), 'fruitexp1',
+    "testing _rbase_check, checking r object name")
+    or diag("Looks like this has failed");
+
+
+## _rdata_loader, TEST 52 to 55
+## It needs to check two things:
+##    1) Has it added the matrix data ?
+##    2) Has it added the new argument in an arrayref. way ?
+##    3) Has it deleted the old x = 'myotherRobjec' ?
+
+throws_ok { $rgraph0->_rdata_loader() } qr/ERROR: No block was/, 
+    "TESTING DIE ERROR when no block was supplied to _rdata_loader()";
+
+$rgraph0->_rdata_loader('TESTBL1');
+
+is($rbase0->r_object_class('TESTBL1', $rdata0->{x}->get_name()), 'data.frame',
+    "testing _rdata_loader, checking the object class into the block")
+    or diag("Looks like this has failed");
+
+my %plot_args0 = %{$sgraph0->{plot}->[0]};
+my ($new_arg0) = keys %{$plot_args0{x}};
+is($new_arg0, $rdata0->{x}->get_name(), 
+    "testing _rdata_loader, checking sgraph arg. addition for input data")
+    or diag("Looks like this has failed");
+
+my $alt_sgraph0 = { plot => { x => 'testing', main => 'title' } };
+
+$rgraph0->set_sgraph($alt_sgraph0);
+$rgraph0->_rdata_loader('TESTBL1');
+
+my %plot_args1 = %{$rgraph0->get_sgraph()->{plot}->[1]};
+my ($del_arg1) = keys %{$plot_args1{x}};
+is($del_arg1, undef,
+    "testing _rdata_loader, checking deletion of the old 'x' plot argument")
+    or diag("Looks like this has failed");
+
+
+## build_graph, it will check the five commands, TEST 56
 
 my $block0 = $rgraph0->build_graph();
 my %blocks2 = %{$rbase0->get_cmdfiles()};     
 
+my %bg_checks = (
+    'fruitexp1 <- data.frame'   => 1,
+    'bmp'                      => 1, 
+    'par'                      => 1,
+    'plot'                     => 1,
+    'points'                   => 1,
+    );
 
-
-print STDERR "\n\n\n\n";
+my $build_graph_check = 0;
 
 open my $tfh, '<', $blocks2{$block0};
 while(<$tfh>) {
-    print STDERR "$_";
+    foreach my $chkey (keys %bg_checks) {
+	if ($_ =~ m/^$chkey/) {
+	    $build_graph_check++;
+	}
+    }
 } 
+close($tfh);
+
+is($build_graph_check, 5, 
+    "Testing build_graph, checking block commands")
+    or diag("Looks like this has failed");
+
+
+## run_graph, TEST 57 tpo 61
+
+throws_ok { $rgraph0->run_graph() } qr/ERROR: No block was/, 
+    "TESTING DIE ERROR when no block was supplied to run_graph()";
+
+throws_ok { $rgraph0->run_graph('fake') } qr/ERROR: Block=fake/, 
+    "TESTING DIE ERROR when block supplied doesnt exists at rbase";
+
+## Set the file into the temp dir to remove it
+
+my $tempdir = $rbase0->get_cmddir();
+my $tempgraph = $tempdir . '/GraphRTest.bmp';
+
+$rgraph0->set_grfile($tempgraph);
+$rgraph0->build_graph("TEMPGRAPH0");
+
+my ($tgraph, $tresult) = $rgraph0->run_graph("TEMPGRAPH0");
+
+is($tgraph, $tempgraph, 
+    "testing run_graph, checking graph filename")
+    or diag("Looks like this has failed");
+
+my ($tg_img_x, $tg_img_y) = Image::Size::imgsize($tgraph);
+
+is($tg_img_x, 600, 
+   "testing run_graph, checking image size (width) for TEMPGRAPH0 block")
+    or diag("Looks like this has failed");
+
+is($tg_img_y, 600, 
+   "testing run_graph, checking image size (heigth) for TEMPGRAPH0 block")
+    or diag("Looks like this has failed");
+
+
+
+
+## Now it will prepare a battery of images to test them:
+
+my %graphs = (
+    );
+
+
 
 
 ############################

@@ -830,6 +830,83 @@ sub _sgraph_check {
 }
 
 
+=head2 _rdata_check
+
+  Usage: my $robj = $rgraph->_rdata_check($primary_data_R);
+
+  Desc: Check if rdata exists (accessor isnt empty) into rgraph object.
+        Die if is empty.
+
+  Ret: $robj, a R object name for primary data (data used by the graph)
+
+  Args: $primary_data_R, according the simple graph used, the name of the
+        default primary data (for example: 'x' for plot or 'height' for barplot)
+        $mincol, min. number of columns for this method.
+        $maxcol, max. number of columns for this method.
+
+  Side_Effects: If there are more than one rdata, it will try to match the
+                R object name with the primary graph data
+
+  Example: my $robj = $rgraph->_rdata_check('height', 1, undef);
+              
+=cut
+
+sub _rdata_check {
+    my $self = shift;
+    my $grin = shift ||
+	croak("ERROR: No sgraph input R object was supplied to _rdata_check.");
+    my $mincol = shift ||
+	1;                                     ## One min. column by default
+    my $maxcol = shift;                        ## Undef max. columns by default
+
+    my $r_obj;
+
+    my %rdata = %{$self->get_rdata()};
+    my $dt_objs = scalar(keys %rdata);
+
+    ## It will check how many R data objects are into the rdata accessor:
+    ## For 0, it just die
+    ## For 1, it will take it as primary data linking the R object name with  
+    ##        that name.
+    ## For more than 1, it will try to match the R name with 
+
+    if ($dt_objs == 0) {
+     	croak("DATA ERROR: Rdata doesnt have any data.");
+    }
+    elsif ($dt_objs == 1) {
+	foreach my $r (keys %rdata) {
+	    $grin = $r;
+	    $r_obj = $rdata{$grin}->get_name();
+	}
+    }
+    else {   
+	
+     	unless (exists $rdata{$grin}) {
+     	    croak("ERROR:There are more than one rdata and none has $grin a R");
+     	}
+     	else {   ## Link the name of the rmatrix with the input.data
+     	    $r_obj = $rdata{$grin}->get_name();
+     	}
+    }
+    
+    ## Next will be check the number of columns:
+
+    my $coln = $rdata{$grin}->get_coln() || 0;
+
+    if ($coln < $mincol) {
+     	croak("ERROR: Matrix=$r_obj ($coln) doesnt have min. ncol ($mincol).");
+     }
+
+    if (defined $maxcol) {	
+     	unless ($coln <= $maxcol) {
+     	    croak("ERROR: Matrix=$r_obj exceeds the max. ncol ($maxcol)");
+     	}
+     }
+
+    ## If everything is okay, it will return the object name
+    
+    return $r_obj;
+}
 
 
 
@@ -845,6 +922,10 @@ sub _sgraph_check {
 
   Side_Effects: Die if no block is used.
                 Die if block doesnt exist in the current rbase
+                Add the input R data object to sgraph hashref. If the sgraph
+                args. are a hash ref. it will convert them in a array ref. to
+                keep the order, and it will delete the arg. that refer to the
+                input data.
 
   Example: $rgraph->_rdata_loader($block);
               
@@ -857,7 +938,7 @@ sub _rdata_loader {
 
     ## Get the sgraph data
 
-    my %graphs = %{$self->get_sgraph()};
+    my $graphs_href = $self->get_sgraph();
     my $sgr = $self->_sgraph_check();
 
     ## Define the data requeriments for each of the high-level plotting cmds
@@ -876,88 +957,61 @@ sub _rdata_loader {
 
     my $sgr_input = $reqs{$sgr}->{dt}[0];
     my $sgr_class = $reqs{$sgr}->{dt}[1];
-
-    # ## 1.2) Check rdata
+    my $mincol = $reqs{$sgr}->{ncol}[0];
+    my $maxcol = $reqs{$sgr}->{ncol}[1];
     
-    # my $i_mtx;
-    # my %rdata = %{$self->get_rdata()};
-    # my $dt_objs = scalar(keys %rdata);
+    ## Now it knows that the input pair will be: $sgr_input = $r_obj
 
-    # my $r_dt;
-    # if ($dt_objs == 0) {
-    # 	croak("DATA ERROR: Rdata doesnt have any data. Aborting build_graph.");
-    # }
-    # elsif ($dt_objs == 1) {          ## If there are just one matrix, it will
-    # 	                            ## be the primary data matrix (x or height)
-    # 	my ($dt_r) = keys %rdata;
-    # 	$sgraph{$sgr_f}->{$sgr_input} = { $rdata{$dt_r}->get_name() => '' };
-	
-    # 	## Define the input matrix
-    # 	$i_mtx = $rdata{$dt_r};
-    # }
-    # else {       ## If there are more than one matrix, it  will need to match 
-    #              ## r.obj names with data.input.argument. 
-	
-    # 	unless (exists $rdata{$sgr_input}) {
-    # 	    my $e0 = "ERROR: There are more than one rdata and none has";
-    # 	    croak("$e0 R.obj.input=$sgr_input.")
-    # 	}
-    # 	else {   ## Link the name of the rmatrix with the input.data
-    # 	    my $rdata_obj = $rdata{$sgr_input}->get_name();
-    # 	    $sgraph{$sgr_f}->{$sgr_input} = { $rdata_obj => '' } ;
-    # 	    $i_mtx = $rdata{$sgr_input};
-    # 	}
-    # }
-   
-    # ## 1.3) Check max column
+    my %rdata = %{$self->get_rdata()};
+    my $r_obj = $self->_rdata_check($sgr_input, $mincol, $maxcol);
 
-    # my $mi_ncol = $sgraph_dt{$sgr_f}->{ncol}[0];
-    # my $ma_ncol = $sgraph_dt{$sgr_f}->{ncol}[1];
-    # my $ncol = $i_mtx->get_coln();
+    ## Create the data object for all the rbase, knowing that the input pair 
+    ## will be: $sgr_input = $r_obj
 
-    # if ($ncol < $mi_ncol) {
-    # 	croak("ERROR: $sgr_f needs at least $mi_ncol cols. $i_mtx has $ncol");
-    # }
+    my $rbase = $self->_rbase_check();
 
-    # if (defined $ma_ncol) {	
-    # 	unless ($ncol <= $ma_ncol) {
-    # 	    carp("WARNING: graph=$sgr_f works with 1 col. Matrix has $ncol.");
-    # 	}
-    # }
+    foreach my $robj (keys %rdata) {
+	$rdata{$robj}->send_rbase($rbase, $block, $sgr_class);
+    }
 
-    # ## 1.4) Create the data object for all the rbase (incluiding i_mtx)
+    ## Finally it will add to the sgraph the new data assigment...
+    ## if it is a hash ref. it will add an array with the input data assigment
+    ##    at the beginning of the array.
+    ## if it is an array it will add at the begining of the array
 
-    # foreach my $robj (keys %rdata) {
-    # 	#$rdata{$robj}->send_rbase($rbase, $block, $sgr_class);
-    # }
+    my $sgraph_args = $graphs_href->{$sgr};
 
+    ## First delete, second add to the array or conver the hash into an array
+    ## and add it
 
+    if (ref($sgraph_args) eq 'HASH') {
+	delete($sgraph_args->{$sgr_input});
+	my $input_href = { $sgr_input => { $r_obj => '' } };
+	$graphs_href->{$sgr} = [$input_href, $sgraph_args ];
+    }
+    else {
+	foreach my $arghash (@{$sgraph_args}) {
+	    delete($arghash->{$sgr_input});
+	}
+	unshift(@{$graphs_href->{$sgr}}, { $sgr_input => { $r_obj => '' } });
+    }
 }
-
-
-
-
-
-
-
-
-
-
 
 
 =head2 build_graph
 
-  Usage: my $filegraph = $rgraph->build_graph();
+  Usage: my $block = $rgraph->build_graph($block);
 
-  Desc: 
+  Desc: A function to build the graph and return the block name.
 
-  Ret: $filegraph, the name of the graph file 
+  Ret: $block, the name of the block where all the commands have been printed
 
-  Args: None
+  Args: $block, a base block to add all the commands to create the graph
 
   Side_Effects: Die if some of the accessors are empty
 
-  Example: my $filegraph = $rgraph->build_graph();
+  Example: my $block = $rgraph->build_graph();
+           $rgraph->build_graph("GRAPHBLOCK1");
               
 =cut
 
@@ -974,12 +1028,8 @@ sub build_graph {
     $block = $self->_block_check($block);
     
     ## 1) Create the data objects 
-    ## 1.1) Define data requeriments as: 
-    ##      {graph => data.input.argument => r.obj.class, ncol => [min, max]} 
 
-    ## Get the sgraph:
-    
-    
+    $self->_rdata_loader($block);    
     
     ## 2) Init. Device
 
@@ -1022,6 +1072,44 @@ sub build_graph {
     return $block;
 }
 
+=head2 run_graph
+
+  Usage: my ($filegraph, $fileresults) = $rgraph->run_graph();
+
+  Desc: A wrapper function to use run_command over a concrete graph block
+
+  Ret: $filegraph, the name of the graph file 
+       $fileresults, with the result of run all the R commans of this block
+
+  Args: None
+
+  Side_Effects: Die if some of the accessors are empty.
+                Return the filename for the graph from the grfile accessor
+
+  Example: my ($filegraph, $fileresults) = $rgraph->build_graph();
+              
+=cut
+
+sub run_graph {
+    my $self = shift;
+    my $block = shift ||
+	croak("ERROR: No block was supplied to run_graph.");
+
+    my $rbase = $self->_rbase_check();
+
+    my %blocks = %{$rbase->get_cmdfiles()};
+
+    unless (exists $blocks{$block}) {
+	croak("ERROR: Block=$block doesnt exist at rbase=$rbase.");
+    }
+
+    $rbase->run_block($block);
+
+    my $filegraph = $self->get_grfile();
+    my $fileresult = $rbase->get_resultfiles($block);
+    
+    return ($filegraph, $fileresult);
+}
 
 
 
