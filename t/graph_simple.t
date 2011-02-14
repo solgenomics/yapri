@@ -30,7 +30,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 61;
+use Test::More tests => 69;
 use Test::Exception;
 use Test::Warn;
 
@@ -385,10 +385,73 @@ is($tg_img_y, 600,
 
 ## Now it will prepare a battery of images to test them:
 
+my $rbase1 = YapRI::Base->new();
+push @rih_objs, $rbase1;
+
+my @rownames = qw/f1 f2 f3 f4 f5 f6 f7 f8 f9 f10/;
+my $mtx1 = YapRI::Data::Matrix->new({ name     => "PetalCount1",
+				      coln     => 1,
+				      rown     => 10,
+				      colnames => ['petalcount'],
+				      rownames => \@rownames,
+				      data     => [qw/4 5 7 5 6 5 4 3 5 8/],
+    });
+
 my %graphs = (
+    1 => { rbase => $rbase1,
+	   rdata => { x => $mtx1 },
+	   grfile => $tempdir . '/GraphR_hist.bmp',
+	   device => { bmp => { width => 600, height => 400 } },
+	   sgraph => { hist => { freq => 'TRUE' } },
+    },
+    2 => { rbase => $rbase1,
+	   rdata => { x => $mtx1 },
+	   grfile => $tempdir . '/GraphR_dotchart.tiff',
+	   device => { tiff => { width => 400, height => 600 } },
+	   sgraph => { dotchart => { pch => 23 } },
+    },
+    3 => { rbase => $rbase1,
+	   rdata => { x => $mtx1 },
+	   grfile => $tempdir . '/GraphR_barplot.jpeg',
+	   device => { jpeg => { width => 600, height => 600 } },
+	   sgraph => { barplot => { col    => {'rainbow(10)' => '' },
+				    beside => 'TRUE',
+		       } },
+    },
+    4 => { rbase => $rbase1,
+	   rdata => { x => $mtx1 },
+	   grfile => $tempdir . '/GraphR_pie.png',
+	   device => { png => { width => 400, height => 400 } },
+	   sgraph => { pie => { labels => \@rownames } },
+    },
+
     );
 
+foreach my $idx (sort {$a <=> $b} keys %graphs) {
+    my $rgraphx = YapRI::Graph::Simple->new($graphs{$idx});
+    my $blockx = $rgraphx->build_graph();
+    $rgraphx->run_graph($blockx);
+}
 
+foreach my $idx2 (sort {$a <=> $b} keys %graphs) {
+    my $grfilex = $graphs{$idx2}->{grfile};
+    my $devhref = $graphs{$idx2}->{device};
+    
+    foreach my $dev (keys %{$devhref}) {
+	my $wix = $devhref->{$dev}->{width};
+	my $hex = $devhref->{$dev}->{height};
+    
+	my ($img_x, $img_y) = Image::Size::imgsize($grfilex);
+	is($img_x, $wix, 
+	   "testing run_graph, checking image size (width) for serie $idx2")
+	    or diag("Looks like this has failed");
+
+	is($img_y, $hex, 
+	   "testing run_graph, checking image size (heigth) for serie $idx2")
+	    or diag("Looks like this has failed");
+    }
+   
+}
 
 
 ############################
