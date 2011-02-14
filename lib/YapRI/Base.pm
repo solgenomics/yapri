@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use autodie;
 
-use Carp qw( croak cluck );
+use Carp qw( carp croak cluck );
 use Math::BigFloat;
 use File::Temp qw( tempfile tempdir );
 use File::Path qw( make_path remove_tree);
@@ -1695,11 +1695,17 @@ sub r_var {
 			    if (ref($args) eq 'ARRAY') { ## Ordered by user
 			      
 				foreach my $arg (@{$args}) {
-				    push @arglist, _rvar_arg($arg);
+				    my $targ = _rvar_arg($arg);
+				    if (defined $targ && $targ =~ m/./) {
+					push @arglist, $targ;
+				    }
 				}
 			    }
 			    elsif (ref($args) eq 'HASH') { ## No ordered
-				push @arglist, _rvar_arg($args);	
+				my $targs = _rvar_arg($args);
+				if (defined $targs && $targs =~ m/./) {
+				    push @arglist, $targs;	
+				}
 			    }
 			    else {
 				croak("ERROR: $args $err");
