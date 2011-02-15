@@ -658,7 +658,7 @@ sub set_gritems {
 	croak("ERROR: No gritems arg. were supplied to set_gritems()");
 
     unless (ref($gritems_aref) eq 'ARRAY') {
-	croak("ERROR: $gritems_aref for set_gritems() isnt a HASH REF.");
+	croak("ERROR: $gritems_aref for set_gritems() isnt a ARRAY REF.");
     }
     
     my @grit = @{$gritems_aref};
