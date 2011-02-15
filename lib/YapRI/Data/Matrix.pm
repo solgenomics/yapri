@@ -1476,6 +1476,52 @@ sub change_rows {
     } 
 }
 
+=head2 transpose
+
+  Usage: my $newmatrix = $rmatrix->matrix($matrixname);
+
+  Desc: Create a new matrix executing a transpose over the original matrix
+ 
+  Ret: $newmatrix, a YapRI::Data::Matrix object
+
+  Args: $matrixname, a new matrix name
+        
+  Side_Effects: Use tr_ . $rmatrix->get_name as default name.
+
+  Example: my $newmatrix = $rmatrix->matrix();
+          
+=cut
+
+sub transpose {
+    my $self = shift;
+    my $name = shift;
+
+    unless (defined $name) {
+	$name = 'tr_' . $self->get_name();
+    }
+
+    my $coln = $self->get_coln();
+    my $rown = $self->get_rown();
+    my @colnames = @{$self->get_colnames()};
+    my @rownames = @{$self->get_rownames()};
+
+    my @newdata = ();
+    foreach my $col (@colnames) {
+	push @newdata, $self->get_column($col);
+    }
+
+    my $newmatrix = __PACKAGE__->new({ name     => $name,
+				       coln     => $rown,
+				       rown     => $coln,
+				       colnames => \@rownames, 
+				       rownames => \@colnames,
+				       data     => \@newdata,
+				     });
+
+    return $newmatrix
+}
+
+
 
 #############
 ## SLICERS ##

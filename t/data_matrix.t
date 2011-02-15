@@ -30,7 +30,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 116;
+use Test::More tests => 122;
 use Test::Exception;
 use Test::Warn;
 
@@ -667,6 +667,50 @@ is($rih2->r_object_class($nblock1, $matrix0->get_name()), 'matrix',
 
 throws_ok { $matrix0->send_rbase($rih2, 'fake') } qr/ERROR: fake isnt/, 
     'TESTING DIE ERROR when no defined block is used with send_rbase()';
+
+
+###############
+## TRANSPOSE ##
+###############
+
+## TEST 117 to 122
+
+my $mtx5 = YapRI::Data::Matrix->new(
+    {
+	name     => 'mtx5',
+	coln     => 3,
+	rown     => 2, 
+	colnames => ['A', 'B', 'C'],
+	rownames => ['X', 'Y'],
+	data     => [1, 2, 3, 4, 5, 6],
+    });
+
+my $tr_mtx5 = $mtx5->transpose();
+
+is($tr_mtx5->get_name(), 'tr_mtx5',
+    "testing transpose, checkin new name")
+    or diag("Looks like this has failed");
+
+is($tr_mtx5->get_coln, 2, 
+    "testing transpose, checking column number")
+    or diag("Looks like this has failed");
+
+is($tr_mtx5->get_rown, 3, 
+    "testing transpose, checking row number")
+    or diag("Looks like this has failed");
+
+is(join(',', @{$tr_mtx5->get_colnames()}), 'X,Y', 
+    "testing transpose, checking column names")
+    or diag("Looks like this has failed");
+
+is(join(',', @{$tr_mtx5->get_rownames()}), 'A,B,C', 
+    "testing transpose, checking row names")
+    or diag("Looks like this has failed");
+
+is(join(',', @{$tr_mtx5->get_data()}), '1,4,2,5,3,6', 
+    "testing transpose, checking data")
+    or diag("Looks like this has failed");
+
 
 
 ##############################################################
