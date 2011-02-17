@@ -1640,8 +1640,18 @@ sub _rvar_arg {
         | HASH REF.        | object/function | see below                    |
         +------------------+-----------------+------------------------------+
         
-        $px = { a => undef }, will be just 'a' (R object or function) 
-        $px = { mass => '' }, will be just 'mass' (R object or function) 
+        * R object or R function without arguments
+
+        $px = { a => undef }, will be just 'a'  
+        $px = { mass => '' }, will be just 'mass'
+
+        * R simple object with arguments
+
+        $px = { '' => { x => 2 }}, will be 'x = 2'
+        $px = { '' => { x => [2, 4] }}, will be 'x = c(2, 4)
+
+        * R functions with arguments 
+
         $px = { log  => 2  }, will be 'log(2)'
         $px = { log  => [2, { base => 10 }] }, will be 'log(2, base = 10 )'
         $px = { t    => {x => ''} }, will be 't(x)'
@@ -1683,8 +1693,11 @@ sub r_var {
 		    my $subvar = $obj;
 		    my $args = $pvar->{$obj};        ## Second level, arguments
 		
-		    if (defined $args && $args =~ m/./) { 
-			$subvar .= '(';
+		    if (defined $args && $args =~ m/./) {
+
+			if ($obj =~ m/./) {
+			    $subvar .= '(';
+			}
 
 			unless (ref($args)) {       ## Just numeric, char...
 			    $subvar .= _rvar_noref($args);
@@ -1712,7 +1725,10 @@ sub r_var {
 			    }
 			    $subvar .= join(', ', @arglist);
 			}
-			$subvar .= ')'; ## Close list of arguments
+			
+			if ($obj =~ m/./) {
+			    $subvar .= ')'; ## Close list of arguments
+			}
 		    }
 		    push @list, $subvar;
 		    

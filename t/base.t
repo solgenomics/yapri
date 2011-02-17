@@ -31,7 +31,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 130;
+use Test::More tests => 132;
 use Test::Exception;
 use Test::Warn;
 
@@ -776,6 +776,8 @@ my %r_p_vars = (
     'c(NA, NULL)'                => ['', undef],
     'x'                          => { x => undef },
     'z'                          => { z => '' },
+    'mx = 2'                     => { '' => { mx => 2 } },
+    'tx = c(2, 3)'               => { '' => { tx => [2, 3] } },
     'log(2)'                     => { log => 2 },
     'log(2, base = 10)'          => { log => [2, { base => 10 }]},
     't(x)'                       => { t => {x => '' } },
