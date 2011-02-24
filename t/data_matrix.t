@@ -3,7 +3,7 @@
 =head1 NAME
 
   data_matrix.t
-  A piece of code to test the YapRI::Data::Matrix module
+  A piece of code to test the R::YapRI::Data::Matrix module
 
 =cut
 
@@ -14,7 +14,7 @@
 
 =head1 DESCRIPTION
 
- Test YapRI::Matrix module
+ Test R::YapRI::Matrix module
 
 =cut
 
@@ -42,8 +42,8 @@ use lib "$FindBin::Bin/../lib";
 ## TEST 1 and 2
 
 BEGIN {
-    use_ok('YapRI::Data::Matrix');
-    use_ok('YapRI::Base')
+    use_ok('R::YapRI::Data::Matrix');
+    use_ok('R::YapRI::Base')
 }
 
 ## Add the object created to an array to clean them at the end of the script
@@ -52,19 +52,19 @@ my @rih_objs = ();
 
 ## First, create the empty object and check it, TEST 3 to 6
 
-my $matrix0 = YapRI::Data::Matrix->new();
+my $matrix0 = R::YapRI::Data::Matrix->new();
 
-is(ref($matrix0), 'YapRI::Data::Matrix', 
+is(ref($matrix0), 'R::YapRI::Data::Matrix', 
     "testing new() for an empty object, checking object identity")
     or diag("Looks like this has failed");
 
-throws_ok { YapRI::Data::Matrix->new('fake') } qr/ARGUMENT ERROR: Arg./, 
+throws_ok { R::YapRI::Data::Matrix->new('fake') } qr/ARGUMENT ERROR: Arg./, 
     'TESTING DIE ERROR when arg. supplied new() function is not hash ref.';
 
-throws_ok { YapRI::Data::Matrix->new({fake => 1}) } qr/ARGUMENT ERROR: fake/, 
+throws_ok { R::YapRI::Data::Matrix->new({fake => 1}) } qr/ARGUMENT ERROR: fake/, 
     'TESTING DIE ERROR when arg. key supplied new() function is not permited.';
 
-throws_ok { YapRI::Data::Matrix->new({data => 1}) } qr/ARGUMENT ERROR: 1/, 
+throws_ok { R::YapRI::Data::Matrix->new({data => 1}) } qr/ARGUMENT ERROR: 1/, 
     'TESTING DIE ERROR when arg. val supplied new() function is not permited.';
 
 
@@ -421,7 +421,7 @@ is($element4C, 1,
 
 ## send_rbase, TEST 82 to 86
 
-my $rih = YapRI::Base->new();
+my $rih = R::YapRI::Base->new();
 push @rih_objs, $rih;
 
 $matrix0->send_rbase($rih);
@@ -473,22 +473,22 @@ throws_ok { $matrix0->send_rbase() } qr/ERROR: No rbase argument/,
 throws_ok { $matrix0->send_rbase('fake') } qr/ERROR: fake supplied to/, 
     'TESTING DIE ERROR when rbase arg. supplied to send_rbase() isnt rbase';
 
-my $matrix1 = YapRI::Data::Matrix->new();
+my $matrix1 = R::YapRI::Data::Matrix->new();
 
-throws_ok { $matrix1->send_rbase($rih) } qr/ERROR: object YapRI::Data::Matr/, 
+throws_ok { $matrix1->send_rbase($rih) } qr/ERROR: object R::YapRI::Data::Matr/,
     'TESTING DIE ERROR when object supplied to send_rbase() doesnt have data';
 
 $matrix1->set_coln(2);
 $matrix1->set_rown(2);
 $matrix1->set_data([1, 2, 3, 4]);
 
-throws_ok { $matrix1->send_rbase($rih) } qr/ERROR: Matrix=YapRI::Data::Matr/, 
+throws_ok { $matrix1->send_rbase($rih) } qr/ERROR: Matrix=R::YapRI::Data::Matr/,
     'TESTING DIE ERROR when object supplied to send_rbase() doesnt have name';
 
 
 ## Check read_rbase, TEST 87 to 97
 
-my $matrix2 = YapRI::Data::Matrix->read_rbase( $rih, 
+my $matrix2 = R::YapRI::Data::Matrix->read_rbase( $rih, 
 					       'MTX_TRANS', 
 					       'transp_' . $mtxname);
 my @data2 = @{$matrix2->get_data()};
@@ -505,28 +505,28 @@ is(join(',', @{$matrix2->get_rownames()}), '4,2,1',
    "testing read_rbase, checking rownames")
    or diag("Looks like this has failed");
 
-throws_ok { YapRI::Data::Matrix->read_rbase() } qr/ERROR: No rbase/, 
+throws_ok { R::YapRI::Data::Matrix->read_rbase() } qr/ERROR: No rbase/, 
     'TESTING DIE ERROR when no rbase arg. was supplied to read_base()';
 
-throws_ok { YapRI::Data::Matrix->read_rbase($rih) } qr/ERROR: No block name/, 
+throws_ok { R::YapRI::Data::Matrix->read_rbase($rih) } qr/ERROR: No block name/,
     'TESTING DIE ERROR when no block arg. was supplied to read_base()';
 
-throws_ok { YapRI::Data::Matrix->read_rbase($rih, 'MTX_TRANS') } qr/ROR: No r/, 
+throws_ok { R::YapRI::Data::Matrix->read_rbase($rih, 'MTX_TRANS') } qr/: No r/, 
     'TESTING DIE ERROR when no r_object arg. was supplied to read_base()';
 
-throws_ok { YapRI::Data::Matrix->read_rbase(1, 'MTX_TRANS', 't') } qr/: 1 obj/, 
+throws_ok { R::YapRI::Data::Matrix->read_rbase(1, 'MTX_TRANS', 't') } qr/1 obj/,
     'TESTING DIE ERROR when rbase arg. supplied to read_base() isnt r_base';
 
-throws_ok { YapRI::Data::Matrix->read_rbase($rih, 'fake', 't') } qr/: Block=f/, 
+throws_ok { R::YapRI::Data::Matrix->read_rbase($rih, 'fake', 't') } qr/lock=f/, 
     'TESTING DIE ERROR when block arg. supplied to read_base() doesnt exist';
 
-throws_ok { YapRI::Data::Matrix->read_rbase($rih, 'MTX_TRANS', 'fake_obj') } 
+throws_ok { R::YapRI::Data::Matrix->read_rbase($rih, 'MTX_TRANS', 'fake_obj') } 
    qr/ERROR: fake_obj isnt /, 
     'TESTING DIE ERROR when r_obj supplied to read_base() isnt defined in R';
 
 $rih->add_command('no_mtx <- c(1)', 'MTX_TRANS');
 
-throws_ok { YapRI::Data::Matrix->read_rbase($rih, 'MTX_TRANS', 'no_mtx') } 
+throws_ok { R::YapRI::Data::Matrix->read_rbase($rih, 'MTX_TRANS', 'no_mtx') } 
    qr/ERROR: no_mtx defined /, 
     'TESTING DIE ERROR when r_obj supplied to read_base() isnt R matrix';
 
@@ -534,18 +534,18 @@ throws_ok { YapRI::Data::Matrix->read_rbase($rih, 'MTX_TRANS', 'no_mtx') }
 ## read_ebase with an matrix object without names and with numbers and
 ## words as elements
 
-my $matrix3 = YapRI::Data::Matrix->new({ 
+my $matrix3 = R::YapRI::Data::Matrix->new({ 
     name => 'mixmatrix',
     rown => 2, 
     coln => 3,
     data => [1, 2, 'Yes', 3, 4, 'No'],
 				  });
 
-my $rih2 = YapRI::Base->new();
+my $rih2 = R::YapRI::Base->new();
 push @rih_objs, $rih2;
 
 $matrix3->send_rbase($rih2);
-my $matrix4 = YapRI::Data::Matrix->read_rbase($rih2, 'mixmatrix', 'mixmatrix');
+my $matrix4 = R::YapRI::Data::Matrix->read_rbase($rih2,'mixmatrix','mixmatrix');
 
 is(join(',', @{$matrix4->get_data()}), '1,2,Yes,3,4,No',
     "testing read_rbase for mixed element matrices, checking data")
@@ -554,7 +554,7 @@ is(join(',', @{$matrix4->get_data()}), '1,2,Yes,3,4,No',
 
 ## no_duplicate_names, TEST 98 to 101
 
-my $matrix_d = YapRI::Data::Matrix->new({ 
+my $matrix_d = R::YapRI::Data::Matrix->new({ 
     name => 'dpl1',
     rown => 2, 
     coln => 2,
@@ -636,7 +636,7 @@ my %modes = (
     ); 
 
 foreach my $mode (keys %modes) {
-    my $rbase_t = YapRI::Base->new();
+    my $rbase_t = R::YapRI::Base->new();
     push @rih_objs, $rbase_t;
 
     $matrix0->send_rbase($rbase_t, undef, $mode);
@@ -675,7 +675,7 @@ throws_ok { $matrix0->send_rbase($rih2, 'fake') } qr/ERROR: fake isnt/,
 
 ## TEST 117 to 122
 
-my $mtx5 = YapRI::Data::Matrix->new(
+my $mtx5 = R::YapRI::Data::Matrix->new(
     {
 	name     => 'mtx5',
 	coln     => 3,

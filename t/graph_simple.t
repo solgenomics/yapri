@@ -3,7 +3,7 @@
 =head1 NAME
  
   graph_simple.t
-  A piece of code to test the YapRI::Graph::Simple module
+  A piece of code to test the R::YapRI::Graph::Simple module
 
 =cut
 
@@ -14,7 +14,7 @@
 
 =head1 DESCRIPTION
 
- Test YapRI::Graph::Simple module
+ Test R::YapRI::Graph::Simple module
 
 =cut
 
@@ -44,9 +44,9 @@ use lib "$FindBin::Bin/../lib";
 ## TEST 1 and 3
 
 BEGIN {
-    use_ok('YapRI::Graph::Simple');
-    use_ok('YapRI::Base');
-    use_ok('YapRI::Data::Matrix');
+    use_ok('R::YapRI::Graph::Simple');
+    use_ok('R::YapRI::Base');
+    use_ok('R::YapRI::Data::Matrix');
 }
 
 ## Add the object created to an array to clean them at the end of the script
@@ -65,19 +65,19 @@ my %empty_args = (
     gritems    => [],
     );
 
-my $rgraph0 = YapRI::Graph::Simple->new(\%empty_args);
+my $rgraph0 = R::YapRI::Graph::Simple->new(\%empty_args);
 
-is(ref($rgraph0), 'YapRI::Graph::Simple', 
+is(ref($rgraph0), 'R::YapRI::Graph::Simple', 
     "testing new() for an empty object, checking object identity")
     or diag("Looks like this has failed");
 
-throws_ok { YapRI::Graph::Simple->new('fake') } qr/ARGUMENT ERROR: Arg./, 
+throws_ok { R::YapRI::Graph::Simple->new('fake') } qr/ARGUMENT ERROR: Arg./, 
     'TESTING DIE ERROR when arg. supplied new() function is not hash ref.';
 
-throws_ok { YapRI::Graph::Simple->new({fake => 1}) } qr/ARGUMENT ERROR: fake/, 
+throws_ok { R::YapRI::Graph::Simple->new({fake => 1}) } qr/GUMENT ERROR: fake/, 
     'TESTING DIE ERROR when arg. key supplied new() function is not permited.';
 
-throws_ok { YapRI::Graph::Simple->new({rbase => undef})} qr/ARGUMENT ERROR: v/, 
+throws_ok { R::YapRI::Graph::Simple->new({rbase => undef})} qr/GUMENT ERROR: v/,
     'TESTING DIE ERROR when arg. val supplied new() function is not defined.';
 
 
@@ -87,11 +87,11 @@ throws_ok { YapRI::Graph::Simple->new({rbase => undef})} qr/ARGUMENT ERROR: v/,
 
 ## Create the objects
 
-my $rbase0 = YapRI::Base->new();
+my $rbase0 = R::YapRI::Base->new();
 push @rih_objs, $rbase0;
 
 
-my $rdata0 = { x => YapRI::Data::Matrix->new( { name => 'fruitexp1' } ) };
+my $rdata0 = { x => R::YapRI::Data::Matrix->new( { name => 'fruitexp1' } ) };
 
 my $device0 = { bmp => { width => 600, height => 600, units => 'px' } };
 my $grparams0 = { par => { cex => 1, lab => [5, 5, 7], xpd => 'FALSE' } };
@@ -133,13 +133,13 @@ foreach my $accs (@acsors) {
 ## Check die for specific accessors, TEST 22 to 38
 
 throws_ok { $rgraph0->set_rbase('fake')} qr/ERROR: fake obj./, 
-    "TESTING DIE ERROR when arg supplied to set_rbase isnt YapRI::Base";
+    "TESTING DIE ERROR when arg supplied to set_rbase isnt R::YapRI::Base";
 
 throws_ok { $rgraph0->set_rdata('fake')} qr/ERROR: Rdata href/, 
     "TESTING DIE ERROR when arg supplied to set_rdata isnt HASHREF";
 
 throws_ok { $rgraph0->set_rdata({ x => 'fake'})} qr/ERROR: fake/, 
-    "TESTING DIE ERROR when val supplied to set_rdata isnt YapRI::Data::Matrix";
+    "TESTING DIE ERROR when val supplied set_rdata isnt R::YapRI::Data::Matrix";
 
 throws_ok { $rgraph0->set_device('fake')} qr/ERROR: Device href./, 
     "TESTING DIE ERROR when arg supplied to set_device isnt a HASHREF";
@@ -258,7 +258,7 @@ throws_ok { $rgraph0->_rdata_check() } qr/ERROR: No sgraph input R/,
 throws_ok { $rgraph0->_rdata_check('x') } qr/DATA ERROR: Rdata/, 
     "TESTING DIE ERROR when rdata is empty at _rdata_check()";
 
-my $empmtx = YapRI::Data::Matrix->new({ name => 'empmtx0' });
+my $empmtx = R::YapRI::Data::Matrix->new({ name => 'empmtx0' });
 
 $rgraph0->set_rdata({ 'test' => $empmtx });
 
@@ -385,11 +385,11 @@ is($tg_img_y, 600,
 
 ## Now it will prepare a battery of images to test them:
 
-my $rbase1 = YapRI::Base->new();
+my $rbase1 = R::YapRI::Base->new();
 push @rih_objs, $rbase1;
 
 my @rownames = qw/f1 f2 f3 f4 f5 f6 f7 f8 f9 f10/;
-my $mtx1 = YapRI::Data::Matrix->new({ name     => "PetalCount1",
+my $mtx1 = R::YapRI::Data::Matrix->new({ name     => "PetalCount1",
 				      coln     => 1,
 				      rown     => 10,
 				      colnames => ['petalcount'],
@@ -428,7 +428,7 @@ my %graphs = (
     );
 
 foreach my $idx (sort {$a <=> $b} keys %graphs) {
-    my $rgraphx = YapRI::Graph::Simple->new($graphs{$idx});
+    my $rgraphx = R::YapRI::Graph::Simple->new($graphs{$idx});
     my $blockx = $rgraphx->build_graph();
     $rgraphx->run_graph($blockx);
 }

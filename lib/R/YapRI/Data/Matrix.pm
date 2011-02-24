@@ -1,12 +1,12 @@
 
-package YapRI::Data::Matrix;
+package R::YapRI::Data::Matrix;
 
 use strict;
 use warnings;
 use autodie;
 
 use Carp qw(croak cluck);
-use YapRI::Base qw(r_var);
+use R::YapRI::Base qw(r_var);
 
 
 ###############
@@ -15,7 +15,7 @@ use YapRI::Base qw(r_var);
 
 =head1 NAME
 
-YapRI::Data::Matrix.pm
+R::YapRI::Data::Matrix.pm
 A module to build and pass a Matrix to a YapRI command file
 
 =cut
@@ -25,12 +25,12 @@ $VERSION = eval $VERSION;
 
 =head1 SYNOPSIS
 
-  use YapRI::Base;
-  use YapRI::Data::Matrix;
+  use R::YapRI::Base;
+  use R::YapRI::Data::Matrix;
 
   ## Constructors:
 
-  my $rmatrix = YapRI::Data::Matrix->new('matrix1');
+  my $rmatrix = R::YapRI::Data::Matrix->new('matrix1');
   
   ## Accessors:
 
@@ -69,10 +69,10 @@ $VERSION = eval $VERSION;
 
   ## Parsers:
      
-  my $rbase = YapRI::Base->new();
+  my $rbase = R::YapRI::Base->new();
   $rmatrix->send_rbase($rbase, $mode);
  
-  $rmatrix = YapRI::Data::Matrix->read_rbase($rbase, $block, $r_object_name);
+  $rmatrix = R::YapRI::Data::Matrix->read_rbase($rbase, $block, $r_object_name);
 
   ## Slicers:
 
@@ -83,8 +83,8 @@ $VERSION = eval $VERSION;
 
 =head1 DESCRIPTION
 
- This module pass perl variables to a YapRI::Data::Matrix object that convert
- them in a R command line that it is passed to YapRI::Base object as a block.
+ This module pass perl variables to a R::YapRI::Data::Matrix object that convert
+ them in a R command line that it is passed to R::YapRI::Base object as a block.
 
    +-----------+    +----------------------+    +------------+    +---+--------+
    | PerlData1 | => | YaRI::Data::Matrix 1 | => |            | => |   | Input  |
@@ -120,11 +120,11 @@ The following class methods are implemented:
 
 =head2 constructor new
 
-  Usage: my $rmatrix = YapRI::Data::Matrix->new();
+  Usage: my $rmatrix = R::YapRI::Data::Matrix->new();
 
-  Desc: Create a new YapRI::Data::Matrix object
+  Desc: Create a new R::YapRI::Data::Matrix object
 
-  Ret: a YapRI::Data::Matrix object
+  Ret: a R::YapRI::Data::Matrix object
 
   Args: A hash reference with the following parameters:
           name     => a scalar with the matrix name, 
@@ -137,7 +137,7 @@ The following class methods are implemented:
   Side_Effects: Die if the argument used is not a hash or its values arent 
                 right.
 
-  Example: my $rmatrix = YapRI::Data::Matrix->new(
+  Example: my $rmatrix = R::YapRI::Data::Matrix->new(
                                      { 
                                        name     => 'matrix1',
                                        coln     => 3,
@@ -240,7 +240,7 @@ sub new {
 
   Usage: my $name = $matrix->get_name();
 
-  Desc: Get the Matrix name for a YapRI::Data::Matrix object
+  Desc: Get the Matrix name for a R::YapRI::Data::Matrix object
 
   Ret: $name, a scalar
 
@@ -261,7 +261,7 @@ sub get_name {
 
   Usage: $matrix->set_name($name);
 
-  Desc: Set the Matrix name for a YapRI::Data::Matrix object
+  Desc: Set the Matrix name for a R::YapRI::Data::Matrix object
 
   Ret: None
 
@@ -289,7 +289,7 @@ sub set_name {
 
   Usage: my $coln = $matrix->get_coln();
 
-  Desc: Get the matrix column number for a YapRI::Data::Matrix object
+  Desc: Get the matrix column number for a R::YapRI::Data::Matrix object
 
   Ret: $coln, a scalar
 
@@ -310,7 +310,7 @@ sub get_coln {
 
   Usage: $matrix->set_coln($coln);
 
-  Desc: Set the matrix column number for a YapRI::Data::Matrix object
+  Desc: Set the matrix column number for a R::YapRI::Data::Matrix object
 
   Ret: None
 
@@ -348,7 +348,7 @@ sub set_coln {
 
   Usage: my $rown = $matrix->get_rown();
 
-  Desc: Get the matrix row number for a YapRI::Data::Matrix object
+  Desc: Get the matrix row number for a R::YapRI::Data::Matrix object
 
   Ret: $rown, a scalar
 
@@ -369,7 +369,7 @@ sub get_rown {
 
   Usage: $matrix->set_rown($rown);
 
-  Desc: Set the matrix row number for a YapRI::Data::Matrix object
+  Desc: Set the matrix row number for a R::YapRI::Data::Matrix object
 
   Ret: None
 
@@ -407,7 +407,7 @@ sub set_rown {
 
   Usage: my $colnames_aref = $matrix->get_colnames();
 
-  Desc: Get the Matrix column names array for a YapRI::Data::Matrix object
+  Desc: Get the Matrix column names array for a R::YapRI::Data::Matrix object
 
   Ret: $colnames_aref, an array reference with the column names
 
@@ -428,7 +428,7 @@ sub get_colnames {
 
   Usage: $matrix->set_colnames(\@colnames);
 
-  Desc: Set the matrix column names array for a YapRI::Data::Matrix object
+  Desc: Set the matrix column names array for a R::YapRI::Data::Matrix object
 
   Ret: None
 
@@ -477,7 +477,7 @@ sub set_colnames {
 
   Usage: my $rownames_aref = $matrix->get_rownames();
 
-  Desc: Get the Matrix row names array for a YapRI::Data::Matrix object
+  Desc: Get the Matrix row names array for a R::YapRI::Data::Matrix object
 
   Ret: $rownames_aref, an array reference with the row names
 
@@ -498,7 +498,7 @@ sub get_rownames {
 
   Usage: $matrix->set_rownames(\@rownames);
 
-  Desc: Set the matrix row names array for a YapRI::Data::Matrix object
+  Desc: Set the matrix row names array for a R::YapRI::Data::Matrix object
 
   Ret: None
 
@@ -547,7 +547,7 @@ sub set_rownames {
 
   Usage: my $data_aref = $matrix->get_data();
 
-  Desc: Get the matrix data array for a YapRI::Data::Matrix object.
+  Desc: Get the matrix data array for a R::YapRI::Data::Matrix object.
         The data is stored as an array ordered by rows.
 
         Example: Matrix  |1 2 3|  => [1, 2, 3, 4, 5, 6]
@@ -572,7 +572,7 @@ sub get_data {
 
   Usage: $matrix->set_data(\@data);
 
-  Desc: Set the matrix data array for a YapRI::Data::Matrix object
+  Desc: Set the matrix data array for a R::YapRI::Data::Matrix object
 
   Ret: None
 
@@ -1482,7 +1482,7 @@ sub change_rows {
 
   Desc: Create a new matrix executing a transpose over the original matrix
  
-  Ret: $newmatrix, a YapRI::Data::Matrix object
+  Ret: $newmatrix, a R::YapRI::Data::Matrix object
 
   Args: $matrixname, a new matrix name
         
@@ -1715,7 +1715,7 @@ sub _matrix_cmd {
 
     ## Add data using r_var function to convert in per R string
     
-    $cmd .= YapRI::Base::r_var($self->get_data()) . ', ';
+    $cmd .= R::YapRI::Base::r_var($self->get_data()) . ', ';
     
     ## add rown, coln and byrow=TRUE
     
@@ -1726,8 +1726,8 @@ sub _matrix_cmd {
     ## Finally it will add the row and col names
 
     $cmd .= 'dimnames=list(';    
-    $cmd .= YapRI::Base::r_var($self->get_rownames()) . ', ';
-    $cmd .= YapRI::Base::r_var($self->get_colnames()) . ')';
+    $cmd .= R::YapRI::Base::r_var($self->get_rownames()) . ', ';
+    $cmd .= R::YapRI::Base::r_var($self->get_colnames()) . ')';
     
     ## And close the matrix
     $cmd .= ')';
@@ -1866,7 +1866,7 @@ sub _colvectors_cmd {
 
   Usage: $rmatrix->send_rbase($rbase, $block, $mode);
 
-  Desc: Load the matrix data as a block in a rbase object (YapRI::Base)
+  Desc: Load the matrix data as a block in a rbase object (R::YapRI::Base)
         The R matrix name will the same than the perl matrix name.
         If block argument is used, it will add the command to this block.
         If block argument is undef or empty, it will create a new block with
@@ -1874,7 +1874,7 @@ sub _colvectors_cmd {
  
   Ret: None
 
-  Args: $rbase, a YapRI::Base object, 
+  Args: $rbase, a R::YapRI::Base object, 
         $block, block to create or add the data, an undef or empty value
                 will create a new block with the matrix name.
         $mode, a scalar with the following possible values matrix, dataframe
@@ -1882,7 +1882,7 @@ sub _colvectors_cmd {
              
  
   Side_Effects: Die if no rbase object is used or if the argument used
-                is not a YapRI::Base object
+                is not a R::YapRI::Base object
 
   Example: ## Default mode (R matrix in a new block with name=matrix_name)
               $rmatrix->send_rbase($rbase);
@@ -1922,8 +1922,8 @@ sub send_rbase {
 
     $self->_no_duplicate_names();
 
-    if (ref($rbase) ne 'YapRI::Base') {
-	croak("ERROR: $rbase supplied to send_rbase() isnt YapRI::Base obj.");
+    if (ref($rbase) ne 'R::YapRI::Base') {
+	croak("ERROR: $rbase supplied to send_rbase() isnt R::YapRI::Base obj.");
     }
 
     ## Check if Block exist for rbase
@@ -1973,7 +1973,7 @@ sub send_rbase {
 
 =head2 read_rbase
 
-  Usage: my $rmatrix = YapRI::Data::Matrix->read_rbase( $rbase, 
+  Usage: my $rmatrix = R::YapRI::Data::Matrix->read_rbase( $rbase, 
                                                         $block, 
                                                         $r_object_name);
 
@@ -1982,20 +1982,20 @@ sub send_rbase {
         Parse the resultfile and get the data from it, loading it in a new
         matrix object. 
  
-  Ret: A new matrix object (YapRI::Data::Matrix)
+  Ret: A new matrix object (R::YapRI::Data::Matrix)
 
-  Args: $rbase, a YapRI::Base object, 
+  Args: $rbase, a R::YapRI::Base object, 
         $block, a scalar with the name of the block that contains the R object
                 to be read
         $r_object_name, name of the r_object to read
         
   Side_Effects: Die if no rbase object, block name or r_object_name is used.
-                Die if rbase objects isnt a YapRI::Base object
-                Die if block doesnt exist in the YapRI::Base object
+                Die if rbase objects isnt a R::YapRI::Base object
+                Die if block doesnt exist in the R::YapRI::Base object
                 Die if the r_object_name doesnt exist in the R block used
                 Die if the r_object_name isnt a matrix object.
 
-  Example:  my $rmatrix = YapRI::Data::Matrix->read_rbase( $rbase, 
+  Example:  my $rmatrix = R::YapRI::Data::Matrix->read_rbase( $rbase, 
                                                            'BLOCK1', 
                                                            'mymatrix');
           
@@ -2012,8 +2012,8 @@ sub read_rbase {
 
     ## Check object identity
 
-    if (ref($rbase) ne 'YapRI::Base') {
-	croak("ERROR: $rbase object supplied to read_rbase() isnt YapRI::Base");
+    if (ref($rbase) ne 'R::YapRI::Base') {
+	croak("ERROR: $rbase object supplied to read_rbase() isnt R::YapRI::Base");
     }
 
     ## Check that exists the block used
@@ -2143,7 +2143,7 @@ sub read_rbase {
     }
 
     ## everything should be parsed, now it will create a new 
-    ## YapRI::Data::Matrix object 
+    ## R::YapRI::Data::Matrix object 
     
     my $matrix = $class->new({ 
 	name     => $r_obj,

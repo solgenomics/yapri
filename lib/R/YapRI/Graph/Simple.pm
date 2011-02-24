@@ -1,5 +1,5 @@
 
-package YapRI::Graph::Simple;
+package R::YapRI::Graph::Simple;
 
 use strict;
 use warnings;
@@ -8,8 +8,8 @@ use autodie;
 use Carp qw( croak cluck );
 use String::Random qw( random_regex random_string);
 
-use YapRI::Base qw( r_var );
-use YapRI::Data::Matrix;
+use R::YapRI::Base qw( r_var );
+use R::YapRI::Data::Matrix;
 
 
 ###############
@@ -18,8 +18,8 @@ use YapRI::Data::Matrix;
 
 =head1 NAME
 
-YapRI::Graph::Simple.pm
-A module to create simple graphs using R through YapRI::Base
+R::YapRI::Graph::Simple.pm
+A module to create simple graphs using R through R::YapRI::Base
 
 =cut
 
@@ -28,17 +28,17 @@ $VERSION = eval $VERSION;
 
 =head1 SYNOPSIS
 
-  use YapRI::Base;
-  use YapRI::Data::Matrix;
-  use YapRI::Graph::Simple;
+  use R::YapRI::Base;
+  use R::YapRI::Data::Matrix;
+  use R::YapRI::Graph::Simple;
 
   ## Create rbase:
 
-  my $rbase = YapRI::Base->new();
+  my $rbase = R::YapRI::Base->new();
 
   ## Create the data matrix
 
-  my $ymatrix = YapRI::Data::Matrix->new({
+  my $ymatrix = R::YapRI::Data::Matrix->new({
     name     => 'data1',
     coln     => 10,
     rown     => 2, 
@@ -50,7 +50,7 @@ $VERSION = eval $VERSION;
   ## Create the graph with the graph arguments, a barplot with two series (rows)
   ## of data per group (cols).
 
-  my $rgraph = YapRI::Graph::Simple->new({
+  my $rgraph = R::YapRI::Graph::Simple->new({
     rbase  => $rbase,
     rdata  => { height => $ymatrix },
     grfile => "MyFile.bmp",
@@ -70,10 +70,10 @@ $VERSION = eval $VERSION;
 
 =head1 DESCRIPTION
 
- This module is a wrapper of YapRI::Base to create simple graphs using R, 
+ This module is a wrapper of R::YapRI::Base to create simple graphs using R, 
  with the following features:
 
-  1) It loads the data from Perl to R using YapRI::Data::Matrix.
+  1) It loads the data from Perl to R using R::YapRI::Data::Matrix.
   
   2) It works with blocks, so it can define a block in the beginning of
      the module/script and use as base to add the data and the graph creation
@@ -88,7 +88,7 @@ $VERSION = eval $VERSION;
                                                legend, title and axis.
 
   4) It uses two commands to create the file with the graph:
-     + build_graph(), to write into the YapRI::Base block the R commands.
+     + build_graph(), to write into the R::YapRI::Base block the R commands.
      + run_graph(), to executate the R commands from the block.
 
 
@@ -116,16 +116,16 @@ The following class methods are implemented:
 
 =head2 constructor new
 
-  Usage: my $rgraph = YapRI::Graph->new($arguments_href);
+  Usage: my $rgraph = R::YapRI::Graph->new($arguments_href);
 
   Desc: Create a new R graph object
 
-  Ret: a YapRI::Graph object
+  Ret: a R::YapRI::Graph object
 
   Args: A hash reference with the following parameters:
-        rbase   => A YapRI::Base object
+        rbase   => A R::YapRI::Base object
         rdata   => A hash reference with key=R_obj_name, 
-                                         value=YapRI::Data::Matrix object
+                                         value=R::YapRI::Data::Matrix object
         grfile  => A filename
         device  => A hash reference with: key='grDevice name'
                                           value=HASHREF. with grDevice args.
@@ -143,7 +143,7 @@ The following class methods are implemented:
                 right.
 
   Example: ## Default method:
-              my $rih = YapRI::Graph->new();
+              my $rih = R::YapRI::Graph->new();
           
           
 =cut
@@ -155,7 +155,7 @@ sub new {
     my $self = bless( {}, $class ); 
 
     my %permargs = (
-	rbase      => 'YapRI::Base',
+	rbase      => 'R::YapRI::Base',
 	rdata      => {},
 	grfile     => '\w+',
 	device     => {},
@@ -190,7 +190,7 @@ sub new {
     ## After check it will add default values and add in an specific order
 
     unless (defined $args{rbase}) {
-	$args{rbase} = YapRI::Base->new();
+	$args{rbase} = R::YapRI::Base->new();
     }
 
     my %defargs = ( 
@@ -235,17 +235,17 @@ sub new {
   Usage: my $rbase = $rgraph->get_rbase();
          $rgraph->set_rbase($rbase);
 
-  Desc: Get or set the rbase (YapRI::Base object) accessor
+  Desc: Get or set the rbase (R::YapRI::Base object) accessor
 
-  Ret: Get: $rbase, a YapRI::Base object
+  Ret: Get: $rbase, a R::YapRI::Base object
        Set: none
 
   Args: Get: none
-        Set: $rbase, a YapRI::Base object
+        Set: $rbase, a R::YapRI::Base object
         
   Side_Effects: Get: None
                 Set: Die if no rbase object is supplied or if it isnt a 
-                     YapRI::Base object
+                     R::YapRI::Base object
 
   Example: my $rbase = $rgraph->get_rbase();
            $rgraph->set_rbase($rbase);
@@ -267,8 +267,8 @@ sub set_rbase {
     }
 
     if($rbase =~ m/\w+/) {
-	unless (ref($rbase) eq 'YapRI::Base') {
-	    croak("ERROR: $rbase obj. supplied to set_rbase isnt YapRI::Base");
+	unless (ref($rbase) eq 'R::YapRI::Base') {
+	    croak("ERROR: $rbase obj. supplied to set_rbase isnt R::YapRI::Base");
 	}
     }
     $self->{rbase} = $rbase;
@@ -332,19 +332,19 @@ sub set_grfile {
   Desc: Get or set the rdata accessor
 
   Ret: Get: $rdata_href, a hash ref. with key   = R.obj.name, 
-                                          value = YapRI::Data::Matrix
+                                          value = R::YapRI::Data::Matrix
        Set: none
 
   Args: Get: none
         Set: $rdata_href, a hash ref. with key   = R.obj.name, 
-                                           value = YapRI::Data::Matrix
+                                           value = R::YapRI::Data::Matrix
         
   Side_Effects: Get: None
                 Set: Die if arg. supplied is not a hash reference or it dont
-                     have YapRI::Data::Matrix objects.
+                     have R::YapRI::Data::Matrix objects.
 
   Example: my %rdata = %{$rgraph->get_rdata()};
-           $rgraph->set_rdata({ ra => YapRI::Data::Matrix->new() });
+           $rgraph->set_rdata({ ra => R::YapRI::Data::Matrix->new() });
                     
 =cut
 
@@ -364,7 +364,7 @@ sub set_rdata {
     else {
 	foreach my $key (keys %{$rdata}) {
 	    my $val = $rdata->{$key};
-	    if (ref($val) ne 'YapRI::Data::Matrix') {
+	    if (ref($val) ne 'R::YapRI::Data::Matrix') {
 		croak("ERROR: $val supplied to set_rdata() isnt rdata object");
 	    }
  	}
@@ -632,7 +632,7 @@ sub set_sgraph {
                      permited list. 
                      Die if the arguments used for the low-level plotting
                      function are not in the permited arguments, get using
-                     YapRI::Base::r_function_args function + additional func.
+                     R::YapRI::Base::r_function_args function + additional func.
                      for specific cases (example: col.main or cex.sub for title)
 
   Example: my %gritems = %{$rgraph->get_gritems()};
@@ -811,7 +811,7 @@ sub _rbase_check {
     my $self = shift;
     
     my $rbase = $self->get_rbase();
-    if (ref($rbase) ne 'YapRI::Base') {
+    if (ref($rbase) ne 'R::YapRI::Base') {
 	croak("ERROR: Rbase is empty.");
     }
     return $rbase;

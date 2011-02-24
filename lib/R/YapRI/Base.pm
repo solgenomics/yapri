@@ -1,5 +1,5 @@
 
-package YapRI::Base;
+package R::YapRI::Base;
 
 use strict;
 use warnings;
@@ -23,7 +23,7 @@ our @EXPORT_OK = qw( r_var );
 
 =head1 NAME
 
-YapRI::Base.pm
+R::YapRI::Base.pm
 A wrapper to interact with R/
 
 =cut
@@ -33,11 +33,11 @@ $VERSION = eval $VERSION;
 
 =head1 SYNOPSIS
 
-  use YapRI::Base;
+  use R::YapRI::Base;
 
   ## WORKING WITH THE DEFAULT MODE:
 
-  my $rih = YapRI::Base->new();
+  my $rih = R::YapRI::Base->new();
   $rih->add_command('bmp(filename="myfile.bmp", width=600, height=800)');
   $rih->add_command('dev.list()');
   $rih->add_command('plot(c(1, 5, 10), type = "l")');
@@ -51,7 +51,7 @@ $VERSION = eval $VERSION;
 
   ## WORKING WITH COMMAND BLOCKS:
 
-  my $rih = YapRI::Base->new();
+  my $rih = R::YapRI::Base->new();
 
   ## Create a file-block_1
 
@@ -114,11 +114,11 @@ The following class methods are implemented:
 
 =head2 constructor new
 
-  Usage: my $rih = YapRI::Base->new($arguments_href);
+  Usage: my $rih = R::YapRI::Base->new($arguments_href);
 
   Desc: Create a new R interfase object.
 
-  Ret: a YapRI::Base object
+  Ret: a R::YapRI::Base object
 
   Args: A hash reference with the following parameters:
         cmddir       => A string, a dir to store the command files
@@ -132,16 +132,16 @@ The following class methods are implemented:
                 add_default_cmdfile() and set_default_r_opts_pass();
 
   Example: ## Default method:
-              my $rih = YapRI::Base->new();
+              my $rih = R::YapRI::Base->new();
           
            ## Create an empty object
-              my $rih = YapRI::Base->new({ use_defaults => 0 });
+              my $rih = R::YapRI::Base->new({ use_defaults => 0 });
 
            ## Defining own dir and command file
               
               my $rcmd_file = '/home/user/R/myRfile.txt';
               open my $rfh, '>', $rcmd_file;
-              my $rih = YapRI::Base->new({ 
+              my $rih = R::YapRI::Base->new({ 
                                             cmddir   => '/home/user/R',
                                             cmdfiles => { $rcmd_file => $rfh },
                                          });
@@ -839,7 +839,7 @@ sub set_r_opts_pass {
 
   Usage: $rih->set_default_r_opts_pass(); 
 
-  Desc: Set the default r_opts_pass for YapRI::Base (R --slave --vanilla)
+  Desc: Set the default r_opts_pass for R::YapRI::Base (R --slave --vanilla)
 
   Ret: None
 
@@ -1247,7 +1247,7 @@ sub run_block {
 
   Ret: $class, a scalar with the class of the r_object
 
-  Args: $block, a scalar, YapRI::Base block
+  Args: $block, a scalar, R::YapRI::Base block
         $r_object, name of the R object 
 
   Side_Effects: Die if the base alias used doesnt exist or doesnt have cmdfile

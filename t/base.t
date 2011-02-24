@@ -3,7 +3,7 @@
 =head1 NAME
 
   base.t
-  A piece of code to test the YapRI::Base module used 
+  A piece of code to test the R::YapRI::Base module used 
   for PhylGomic pipeline
 
 =cut
@@ -15,7 +15,7 @@
 
 =head1 DESCRIPTION
 
- Test YapRI::Base module used by PhylGomic pipeline.
+ Test R::YapRI::Base module used by PhylGomic pipeline.
 
 =cut
 
@@ -45,7 +45,7 @@ use lib "$FindBin::Bin/../lib";
 ## TEST 1
 
 BEGIN {
-    use_ok('YapRI::Base');
+    use_ok('R::YapRI::Base');
 }
 
 ## Add the object created to an array to clean them at the end of the script
@@ -54,10 +54,10 @@ my @rih_objs = ();
 
 ## Create an empty object and test the possible die functions. TEST 2 to 9
 
-my $rih0 = YapRI::Base->new({ use_defaults => 0 });
+my $rih0 = R::YapRI::Base->new({ use_defaults => 0 });
 push @rih_objs, $rih0;
 
-is(ref($rih0), 'YapRI::Base', 
+is(ref($rih0), 'R::YapRI::Base', 
    "Test new function for an empty object; Checking object ref.")
     or diag("Looks like this has failed");
 
@@ -80,16 +80,16 @@ is($rih0->get_r_opts_pass, '',
 ## By default it will create an empty temp dir
 
 
-throws_ok { YapRI::Base->new(['fake']) } qr/ARGUMENT ERROR: Arg./, 
+throws_ok { R::YapRI::Base->new(['fake']) } qr/ARGUMENT ERROR: Arg./, 
     'TESTING DIE ERROR when arg. supplied new() function is not hash ref.';
 
-throws_ok { YapRI::Base->new({ fake => {} }) } qr/ARGUMENT ERROR: fake/, 
+throws_ok { R::YapRI::Base->new({ fake => {} }) } qr/ARGUMENT ERROR: fake/, 
     'TESTING DIE ERROR for new() when arg. is not a permited arg.';
 
-throws_ok { YapRI::Base->new({ cmddir => undef }) } qr/ARGUMENT ERROR: value/, 
+throws_ok { R::YapRI::Base->new({ cmddir => undef }) } qr/ARGUMENT ERROR: val/, 
     'TESTING DIE ERROR for new() when arg. has undef value';
 
-throws_ok { YapRI::Base->new({ cmdfiles => []}) } qr/ARGUMENT ERROR: ARRAY/, 
+throws_ok { R::YapRI::Base->new({ cmdfiles => []}) } qr/ARGUMENT ERROR: ARRAY/, 
     'TESTING DIE ERROR for new() when arg. doesnt have permited value';
 
 
@@ -289,7 +289,7 @@ throws_ok { $rih0->add_default_cmdfile() } qr/ERROR: Default/,
 
 ### TESTING add_commands, TEST 38 to 46
 
-my $rih1 = YapRI::Base->new({ use_defaults => 1 });
+my $rih1 = R::YapRI::Base->new({ use_defaults => 1 });
 push @rih_objs, $rih1;
 
 my @r_commands = (
@@ -472,7 +472,7 @@ qr/WARNING: --file/i,
 
 ## Lets create a new object to test something more complex
 
-my $rih2 = YapRI::Base->new();
+my $rih2 = R::YapRI::Base->new();
 push @rih_objs, $rih2;
 
 ## Add the commands to enable a graph device and check that it exists
@@ -577,7 +577,7 @@ $rih2->set_r_opts_pass('--slave --vanilla');
 
 ## 1) Create a new object with the default arguments
 
-my $rih3 = YapRI::Base->new();
+my $rih3 = R::YapRI::Base->new();
 push @rih_objs, $rih3;
 
 ## 2) Create a new block and add a couple of commands
@@ -686,7 +686,7 @@ throws_ok  { $rih3->combine_blocks(['test'], 'fake') } qr/ERROR: alias=test/,
 
 ## Check objects identity, TEST 92 to 96
 
-my $rih4 = YapRI::Base->new();
+my $rih4 = R::YapRI::Base->new();
 push @rih_objs, $rih4;
 
 $rih4->create_block('ROBJ1');
@@ -792,7 +792,7 @@ my %r_p_vars = (
     );
 
 foreach my $rvar (keys %r_p_vars) {
-    is(YapRI::Base::r_var($r_p_vars{$rvar}), $rvar, 
+    is(R::YapRI::Base::r_var($r_p_vars{$rvar}), $rvar, 
 	"testing r_var function for $rvar, checking R string")
 	or diag("Looks like this has failed");
 }
@@ -800,19 +800,19 @@ foreach my $rvar (keys %r_p_vars) {
 
 ## Check the croak for this functions:
 
-throws_ok  { YapRI::Base::r_var($rih4) } qr/ERROR: YapRI::Base/, 
+throws_ok  { R::YapRI::Base::r_var($rih4) } qr/ERROR: R::YapRI::Base/, 
     'TESTING DIE ERROR when var supplied isnt scalar or ref. for r_var()';
 
-throws_ok  { YapRI::Base::r_var({ b => $rih4 }) } qr/ERROR: YapRI::Base/, 
+throws_ok  { R::YapRI::Base::r_var({ b => $rih4 }) } qr/ERROR: R::YapRI::Base/, 
     'TESTING DIE ERROR when var arg. supplied isnt scalar or ref. for r_var() ';
 
-throws_ok  { YapRI::Base::_rvar_arg({ b => $rih4 }) } qr/ERROR: No permited/, 
+throws_ok  { R::YapRI::Base::_rvar_arg({ b => $rih4 }) } qr/ERROR: No permited/, 
     'TESTING DIE ERROR when arg. supplied isnt scalar or ref. for rvar_arg() ';
 
-throws_ok  { YapRI::Base::_rvar_vector('fake') } qr/ERROR: fake/, 
+throws_ok  { R::YapRI::Base::_rvar_vector('fake') } qr/ERROR: fake/, 
     'TESTING DIE ERROR when arg. supplied to _rvar_vector isnt ARRAYREF.';
 
-throws_ok  { YapRI::Base::_rvar_noref({}) } qr/ERROR: HASH/, 
+throws_ok  { R::YapRI::Base::_rvar_noref({}) } qr/ERROR: HASH/, 
     'TESTING DIE ERROR when arg. supplied to _rvar_noref is a REF.';
 
 
