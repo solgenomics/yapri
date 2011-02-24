@@ -5,17 +5,17 @@ different blocks of commands.
   It run the commands esentially as: 
   R [options] --file=inputcommandfile > outputresultfile
 
- So the YapRI::Base module, create files, put them in a temp dir by default, 
+ So the R::YapRI::Base module, create files, put them in a temp dir by default, 
 open these files, write the R commands to them, execute the files and 
 store all of them as variables in this object.
 
   Here a synopsis of how works:
 
-  use YapRI::Base;
+  use R::YapRI::Base;
 
   ## WORKING WITH THE DEFAULT MODE:
 
-  my $rih = YapRI::Base->new();
+  my $rih = R::YapRI::Base->new();
   $rih->add_command('bmp(filename="myfile.bmp", width=600, height=800)');
   $rih->add_command('dev.list()');
   $rih->add_command('plot(c(1, 5, 10), type = "l")');
@@ -29,7 +29,7 @@ store all of them as variables in this object.
 
   ## WORKING WITH COMMAND BLOCKS:
 
-  my $rih = YapRI::Base->new();
+  my $rih = R::YapRI::Base->new();
 
   ## Create a file-block_1
 
@@ -57,10 +57,10 @@ store all of them as variables in this object.
   my $resultfile2 = $rih->get_resultfiles('BLOCK2'); 
 
 
- Example of a module that uses YapRI::Base, and YapRI::Data::Matrix to
+ Example of a module that uses R::YapRI::Base, and R::YapRI::Data::Matrix to
  calculate the transpose of the matrix
 
- my $matrix = YapRI::Data::Matrix( { 
+ my $matrix = R::YapRI::Data::Matrix( { 
               name => 'matrix1', 
               rown => 3,
 	      coln => 4, 
@@ -69,10 +69,12 @@ store all of them as variables in this object.
 	      data => [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
               });
 
- my $rih2 = YapRI::Base->new();
+ my $rih2 = R::YapRI::Base->new();
  $matrix->send_rbase($rih2);
  
  $rih2->create_block('TRMATRIX', $matrix->get_name());
  $rih2->add_command('trmatrix1 <- t('.$matrix->get_name().')', 'TRMATRIX');
  $rih2->run_block('TRMATRIX');    
- my $trmatrix = YapRI::Data::Matrix->read_rbase($rih2, 'TRMATRIX', 'trmatrix1');
+ my $trmatrix = R::YapRI::Data::Matrix->read_rbase( $rih2, 
+                                                    'TRMATRIX', 
+                                                    'trmatrix1');
