@@ -1002,8 +1002,15 @@ sub run_command {
         cmdfile => '\w+',
 	debug   => '1|0|yes|no',
 	);
-    
-    my $base_cmd = 'R ';
+
+    ## Get R from whenever it is...
+
+    my $R = _system_r();
+    unless (defined $R) {
+	croak("SYSTEM ERROR: R::YapRI::Base cannot find R executable.");
+    }
+
+    my $base_cmd = $R . ' ';
 
     ## Add the running opts
     my $r_opts_pass = $self->get_r_opts_pass();
@@ -1107,6 +1114,51 @@ sub run_command {
 	croak("\nSYSTEM FAILS running R:\nsystem error: $run\n\n");
     }
 }
+
+=head2 _system_r
+
+  Usage: my $R = _system_r(); 
+
+  Desc: Get R executable path from $RBASE environment variable. If it doesnt
+        exist, it will search in $PATH.
+
+  Ret: $R, R executable path.
+
+  Args: None
+ 
+  Side_Effects: None
+
+  Example: my $R = _system_r();
+
+=cut
+
+sub _system_r {
+    
+    my $r;
+    if (defined $ENV{RBASE}) {
+	$r = $ENV{RBASE};
+    }
+    else {
+	my $path = $ENV{PATH};
+	if (defined $path) {
+	    my @paths = split(/:/, $path);
+	    foreach my $p (@paths) {
+		if ($^O =~ m/MSWin32/) {
+		    if (-e $p . '\Rterm.exe') {
+			$r = $p . '\Rterm.exe';
+		    }
+		}
+		else {
+		    if (-e $p . '/R') {
+			$r = $p . '/R';
+		    }
+		}
+	    }
+	}
+    }
+    return $r;
+}
+
 
 
 ###################
