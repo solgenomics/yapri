@@ -7,6 +7,7 @@ use autodie;
 
 use Carp qw( carp croak cluck );
 use Math::BigFloat;
+use File::Spec;
 use File::Temp qw( tempfile tempdir );
 use File::Path qw( make_path remove_tree);
 use File::stat;
@@ -1144,13 +1145,15 @@ sub _system_r {
 	    my @paths = split(/:/, $path);
 	    foreach my $p (@paths) {
 		if ($^O =~ m/MSWin32/) {
-		    if (-e $p . '\Rterm.exe') {
-			$r = $p . '\Rterm.exe';
+		    my $wfile = File::Spec->catfile($p, 'Rterm.exe');
+		    if (-e $wfile) {
+			$r = $wfile;
 		    }
 		}
 		else {
-		    if (-e $p . '/R') {
-			$r = $p . '/R';
+		    my $ufile = File::Spec->catfile($p, 'R');
+		    if (-e $ufile) {
+			$r = $ufile;
 		    }
 		}
 	    }
