@@ -3,8 +3,7 @@
 =head1 NAME
 
   base.t
-  A piece of code to test the R::YapRI::Base module used 
-  for PhylGomic pipeline
+  A piece of code to test the R::YapRI::Base
 
 =cut
 
@@ -15,7 +14,7 @@
 
 =head1 DESCRIPTION
 
- Test R::YapRI::Base module used by PhylGomic pipeline.
+ Test R::YapRI::Base module
 
 =cut
 
@@ -78,7 +77,7 @@ BEGIN {
 	plan skip_all => "No R path was found in PATH or RBASE. Aborting test.";
     }
 
-    plan tests => 104;
+    plan tests => 107;
 }
 
 
@@ -613,7 +612,7 @@ $rih2->set_r_opts_pass('--slave --vanilla');
 ## BLOCKS TEST ###
 ##################
 
-## TEST 80 to 91
+## TEST 80 to 94
 
 ## 1) Create a new object with the default arguments
 
@@ -622,7 +621,13 @@ push @rih_objs, $rih3;
 
 ## 2) Create a new block and add a couple of commands
 
-$rih3->create_block('block1');
+my $newblock1 = $rih3->create_block('block1');
+
+is(ref($newblock1), 'R::YapRI::Block',
+    "testing create_block, checking object identity")
+    or diag("Looks like this has failed");
+
+
 $rih3->add_command('x <- rnorm(50)', 'block1');
 $rih3->add_command('y <- rnorm(x)', 'block1');
 $rih3->add_command('y * x', 'block1');
@@ -645,7 +650,7 @@ is(scalar(@results3), 50,
     "testing create_block/run_block with basic usage, checking results")
     or diag("Looks like this has failed");
 
-throws_ok  { $rih3->create_block() } qr/ERROR: No new name or alias/, 
+throws_ok  { $rih3->create_block() } qr/ERROR: No new blockname/, 
     'TESTING DIE ERROR when no arg. is used with create_block() function';
 
 throws_ok  { $rih3->run_block() } qr/ERROR: No new name or alias/, 
@@ -693,7 +698,13 @@ foreach my $bl (@blocks) {
    
     ## before run it, it will supply different data
     my $combblock = $graph_alias . '_combine';
-    $rih3->combine_blocks([$bl, $graph_alias], $combblock);
+    my $newblock2 = $rih3->combine_blocks([$bl, $graph_alias], $combblock);
+    
+    is(ref($newblock2), 'R::YapRI::Block',
+    "testing combine_blocks, checking object identity")
+    or diag("Looks like this has failed");
+    
+
     $rih3->run_block($combblock);
 
     ## Check different images, with the default size (480x480)
@@ -714,7 +725,7 @@ foreach my $bl (@blocks) {
 throws_ok  { $rih3->combine_blocks() } qr/ERROR: No block aref./, 
     'TESTING DIE ERROR when no block aref. arg. is used with combine_blocks()';
 
-throws_ok  { $rih3->combine_blocks([]) } qr/ERROR: No new name or/, 
+throws_ok  { $rih3->combine_blocks([]) } qr/ERROR: No new blockname/, 
     'TESTING DIE ERROR when no new name arg. is used with combine_blocks()';
 
 throws_ok  { $rih3->combine_blocks('test', 'fake') } qr/ERROR: test used/, 
@@ -724,7 +735,7 @@ throws_ok  { $rih3->combine_blocks(['test'], 'fake') } qr/ERROR: alias=test/,
     'TESTING DIE ERROR when block aref. arg. used combine_blocks() isnt AR.REF';
 
 
-## Check objects identity, TEST 92 to 96
+## Check objects identity, TEST 95 to 99
 
 my $rih4 = R::YapRI::Base->new();
 push @rih_objs, $rih4;
@@ -755,7 +766,7 @@ throws_ok  { $rih4->r_object_class('fake', 'x') } qr/ERROR: block=fake/,
     'TESTING DIE ERROR when block supplied to r_object_class() doesnt exist';
 
 
-## Check r_function_args, TEST 97 to 104
+## Check r_function_args, TEST 100 to 107
 
 my %plot_args1 = $rih4->r_function_args('plot');
 

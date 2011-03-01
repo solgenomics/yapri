@@ -13,7 +13,7 @@ use File::Path qw( make_path remove_tree);
 use File::stat;
 
 use R::YapRI::Interpreter::Perl qw( r_var );
-
+use R::YapRI::Block;
 
 ###############
 ### PERLDOC ###
@@ -45,41 +45,8 @@ $VERSION = eval $VERSION;
   
   my $result_file = $rih->get_resultfiles('default');
 
-
-
-  ## WORKING WITH COMMAND BLOCKS:
-
-  my $rih = R::YapRI::Base->new();
-
-  ## Create a file-block_1
-
-  $rih->create_block('BLOCK1');
-  $rih->add_command('x <- c(10, 9, 8, 5)', 'BLOCK1');
-  $rih->add_command('z <- c(12, 8, 8, 4)', 'BLOCK1');
-  $rih->add_command('x + z', 'BLOCK1')
   
-  ## Create a file-block_2
-
-  $rih->create_block('BLOCK2');   
-  $rih->add_command('bmp(filename="myfile.bmp", width=600, height=800)', 
-                    'BLOCK2');
-  $rih->add_command('dev.list()', 'BLOCK2');
-  $rih->add_command('plot(c(1, 5, 10), type = "l")', 'BLOCK2');
-  
-  ## Run each block
-
-  $rih->run_block('BLOCK1');
-  $rih->run_block('BLOCK2');
-
-  ## Get the results
-
-   my $resultfile1 = $rih->get_resultfiles('BLOCK1');
-   my $resultfile2 = $rih->get_resultfiles('BLOCK2');
-
-  ## Combine block before run it
-
-   $rih->combine_blocks(['BLOCK1', 'BLOCK2'], 'NEWBLOCK');
-   $rih->run_block('NEWBLOCK');
+  ## To work with blocks, check R::YapRI::Block
 
 
 
@@ -1169,12 +1136,11 @@ sub _system_r {
 
 =head2 ------------------
 
- They are a collection of methods to wrap add_cmdfile functions and 
- combine different cmdfiles
+ They are a collection of methods to use R::YapRI::Block
 
 =head2 combine_blocks
 
-  Usage: $rih->combine_blocks(\@blocks, $new_block); 
+  Usage: my $block = $rih->combine_blocks(\@blocks, $new_block); 
 
   Desc: Create a new block based in an array of defined blocks
 
@@ -1185,7 +1151,7 @@ sub _system_r {
 
   Side_Effects: Die if the alias used doesnt exist or doesnt have cmdfile
 
-  Example: $rih->combine_blocks(['block1', 'block3'], 'block43');
+  Example: my $block = $rih->combine_blocks(['block1', 'block3'], 'block43');
 
 =cut
 
@@ -1193,8 +1159,8 @@ sub combine_blocks {
     my $self = shift;
     my $bl_aref = shift ||
 	croak("ERROR: No block aref. was supplied to combine_blocks function");
-    my $alias = shift ||
-	croak("ERROR: No new name or alias was supplied to combine_blocks()");
+    my $blockname = shift ||
+	croak("ERROR: No new blockname was supplied to combine_blocks()");
     
     unless (ref($bl_aref) eq 'ARRAY') {
 	croak("ERROR: $bl_aref used for combine_blocks() isnt an ARRAYREF.");
@@ -1221,44 +1187,48 @@ sub combine_blocks {
 
     ## 2) Create a temp file for the new block
 
-    $self->add_cmdfile($alias);
+    my $newblock = R::YapRI::Block->new($self, $blockname);
 
     ## 3) Print there the commands
 
     foreach my $cmdline (@r_cmds) {
-	$self->add_command($cmdline, $alias);
+	$newblock->add_command($cmdline);
     }
+    return $newblock;
 }
 
 =head2 create_block
 
-  Usage: $rih->create_block($new_block, $base_block); 
+  Usage: my $block = $rih->create_block($new_block, $base_block); 
 
-  Desc: Create a new block. A single block can be used as base.
+  Desc: Create a new block object. A single block can be used as base.
 
-  Ret: None
+  Ret: $block, a new R::YapRI::Block object
 
   Args: $new_block, new name/alias for this block
         $base_block, base block name
 
   Side_Effects: Die if the base alias used doesnt exist or doesnt have cmdfile
 
-  Example: $rih->create_block('block43', 'block1');
+  Example: my $newblock = $rih->create_block('block43', 'block1');
 
 =cut
 
 sub create_block {
     my $self = shift;
-    my $alias = shift ||
-	croak("ERROR: No new name or alias was supplied to create_block()");
+    my $blockname = shift ||
+	croak("ERROR: No new blockname was supplied to create_block()");
     my $base = shift;
 
+    my $newblock;
+
     if (defined $base) {
-	$self->combine_blocks([$base], $alias);
+	$newblock = $self->combine_blocks([$base], $blockname);
     }
     else {
-	$self->add_cmdfile($alias);
+	$newblock = R::YapRI::Block->new($self, $blockname);
     }
+    return $newblock;
 }
 
 =head2 run_block
