@@ -78,7 +78,7 @@ BEGIN {
 	plan skip_all => "No R path was found in PATH or RBASE. Aborting test.";
     }
 
-    plan tests => 132;
+    plan tests => 104;
 }
 
 
@@ -799,61 +799,6 @@ throws_ok  { $rih4->r_function_args() } qr/ERROR: No R function/,
     'TESTING DIE ERROR when no function arg. was supplied to r_function_args()';
 
 
-## Check internal function, r_var
-
-my %r_p_vars = (
-    '1'                          => 1,
-    '-1.23'                      => '-1.23',
-    '"word"'                     => 'word',
-    '"mix%(4)"'                  => 'mix%(4)',
-    'c(2, 4)'                    => [2, 4],
-    'c(-1.2, -4)'                => ['-1.2', '-4'],
-    'TRUE'                       => 'TRUE',
-    'FALSE'                      => 'FALSE', 
-    'NULL'                       => undef, 
-    'NA'                         => '',
-    'c(TRUE, FALSE)'             => ['TRUE', 'FALSE'],
-    'c(NA, NULL)'                => ['', undef],
-    'x'                          => { x => undef },
-    'z'                          => { z => '' },
-    'mx = 2'                     => { '' => { mx => 2 } },
-    'tx = c(2, 3)'               => { '' => { tx => [2, 3] } },
-    'log(2)'                     => { log => 2 },
-    'log(2, base = 10)'          => { log => [2, { base => 10 }]},
-    't(x)'                       => { t => {x => '' } },
-    'plot(x, main = "A")'        => { plot => [ { x => ''}, { main => "A" } ] },
-    'rnorm(b, mean = 0, sd = 1)' => 
-       { rnorm => { b => undef, mean => 0, sd => 1 } },
-    'pie(c(10, 2, 3), labels = c("A", "B", "C"))' => 
-       { pie => [ [10, 2, 3], { labels => ['A', 'B', 'C'] } ] },
-    'bmp(filename = "test"); plot(x)' =>
-       { bmp => { filename => 'test' }, plot => { x => '' } },
-
-    );
-
-foreach my $rvar (keys %r_p_vars) {
-    is(R::YapRI::Base::r_var($r_p_vars{$rvar}), $rvar, 
-	"testing r_var function for $rvar, checking R string")
-	or diag("Looks like this has failed");
-}
-
-
-## Check the croak for this functions:
-
-throws_ok  { R::YapRI::Base::r_var($rih4) } qr/ERROR: R::YapRI::Base/, 
-    'TESTING DIE ERROR when var supplied isnt scalar or ref. for r_var()';
-
-throws_ok  { R::YapRI::Base::r_var({ b => $rih4 }) } qr/ERROR: R::YapRI::Base/, 
-    'TESTING DIE ERROR when var arg. supplied isnt scalar or ref. for r_var() ';
-
-throws_ok  { R::YapRI::Base::_rvar_arg({ b => $rih4 }) } qr/ERROR: No permited/, 
-    'TESTING DIE ERROR when arg. supplied isnt scalar or ref. for rvar_arg() ';
-
-throws_ok  { R::YapRI::Base::_rvar_vector('fake') } qr/ERROR: fake/, 
-    'TESTING DIE ERROR when arg. supplied to _rvar_vector isnt ARRAYREF.';
-
-throws_ok  { R::YapRI::Base::_rvar_noref({}) } qr/ERROR: HASH/, 
-    'TESTING DIE ERROR when arg. supplied to _rvar_noref is a REF.';
 
 
 
