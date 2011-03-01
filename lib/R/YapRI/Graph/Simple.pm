@@ -8,7 +8,9 @@ use autodie;
 use Carp qw( croak cluck );
 use String::Random qw( random_regex random_string);
 
-use R::YapRI::Base qw( r_var );
+use R::YapRI::Base;
+use R::YapRI::Interpreter::Perl qw( r_var );
+
 use R::YapRI::Data::Matrix;
 
 

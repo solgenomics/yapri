@@ -14,11 +14,6 @@ use File::stat;
 
 use R::YapRI::Interpreter::Perl qw( r_var );
 
-## To export some functions
-
-use Exporter qw( import );
-
-our @EXPORT_OK = qw( r_var );
 
 ###############
 ### PERLDOC ###
