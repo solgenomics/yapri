@@ -30,7 +30,7 @@ use warnings;
 use autodie;
 
 use Data::Dumper;
-use Test::More tests => 122;
+use Test::More;
 use Test::Exception;
 use Test::Warn;
 
@@ -38,6 +38,45 @@ use Cwd;
 
 use FindBin;
 use lib "$FindBin::Bin/../lib";
+
+## Before run any test it will check if R is available
+
+BEGIN {
+    my $r;
+    if (defined $ENV{RBASE}) {
+	$r = $ENV{RBASE};
+    }
+    else {
+	my $path = $ENV{PATH};
+	if (defined $path) {
+	    my @paths = split(/:/, $path);
+	    foreach my $p (@paths) {
+		if ($^O =~ m/MSWin32/) {
+		    my $wfile = File::Spec->catfile($p, 'Rterm.exe');
+		    if (-e $wfile) {
+			$r = $wfile;
+		    }
+		}
+		else {
+		    my $ufile = File::Spec->catfile($p, 'R');
+		    if (-e $ufile) {
+			$r = $ufile;
+		    }
+		}
+	    }
+	}
+    }
+
+    ## Now it will plan or skip the test
+
+    unless (defined $r) {
+	plan skip_all => "No R path was found in PATH or RBASE. Aborting test.";
+    }
+
+    plan tests => 122;
+}
+
+
 
 ## TEST 1 and 2
 
