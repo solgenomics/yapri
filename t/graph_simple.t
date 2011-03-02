@@ -258,14 +258,14 @@ is( $rgraph0->_block_check() =~ /GRAPH_BUILD_/, 1,
     "testing _block_check for undef value, checking default block name")
     or diag("Looks like this has failed");
 
-my %blocks0 = %{$rbase0->get_cmdfiles()};
+my %blocks0 = %{$rbase0->get_blocks()};
 
 is( $blocks0{'TESTBL1'}, undef, 
     "testing _block_check for def. new value, checking that block doesnt exist")
     or diag("Looks like this has failed");
 
 $rgraph0->_block_check('TESTBL1');
-my %blocks1 = %{$rbase0->get_cmdfiles()};
+my %blocks1 = %{$rbase0->get_blocks()};
 
 is( defined($blocks1{'TESTBL1'}), 1, 
     "testing _block_check for def. new value, checking block creation")
@@ -360,7 +360,7 @@ is($del_arg1, undef,
 ## build_graph, it will check the five commands, TEST 56
 
 my $block0 = $rgraph0->build_graph();
-my %blocks2 = %{$rbase0->get_cmdfiles()};     
+my %blocks2 = %{$rbase0->get_blocks()};     
 
 my %bg_checks = (
     'fruitexp1 <- data.frame'   => 1,
@@ -372,7 +372,7 @@ my %bg_checks = (
 
 my $build_graph_check = 0;
 
-open my $tfh, '<', $blocks2{$block0};
+open my $tfh, '<', $blocks2{$block0}->get_command_file();
 while(<$tfh>) {
     foreach my $chkey (keys %bg_checks) {
 	if ($_ =~ m/^$chkey/) {
@@ -494,14 +494,6 @@ foreach my $idx2 (sort {$a <=> $b} keys %graphs) {
 
 
 
-
-############################
-## REMOVE THE rbase files ##
-############################
-
-foreach my $rbase_c (@rih_objs) {
-    $rbase_c->cleanup();
-}
 
 ####
 1; #

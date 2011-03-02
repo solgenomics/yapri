@@ -270,7 +270,7 @@ sub set_rbase {
 
     if($rbase =~ m/\w+/) {
 	unless (ref($rbase) eq 'R::YapRI::Base') {
-	    croak("ERROR: $rbase obj. supplied to set_rbase isnt R::YapRI::Base");
+	croak("ERROR: $rbase obj. supplied to set_rbase isnt R::YapRI::Base");
 	}
     }
     $self->{rbase} = $rbase;
@@ -757,8 +757,8 @@ sub is_device_enabled {
     $rbase->add_command('print("init.dev.list")', $cblock);
     $rbase->add_command('dev.cur()', $cblock);
     $rbase->add_command('print("end.dev.list")', $cblock);
-    $rbase->run_block($cblock);
-    my $rfile = $rbase->get_resultfiles($cblock);
+    $rbase->run_commands($cblock);
+    my $rfile = $rbase->get_blocks($cblock)->get_result_file();
     open my $rfh, '<', $rfile;
 
     my $match_region = 0;
@@ -778,8 +778,7 @@ sub is_device_enabled {
     close($rfh);
 
     ## Finally it will clean everything and return $enab
-    $rbase->delete_cmdfile($cblock);
-    $rbase->delete_resultfile($cblock);
+    $rbase->delete_block($cblock);
 
     return $enab;
 }
@@ -843,8 +842,8 @@ sub _block_check {
     
     my $rbase = $self->_rbase_check();
     if (defined $block) {
-	my %bcks = %{$rbase->get_cmdfiles()};
-	unless (exists $bcks{$block}) {
+
+	unless (defined $rbase->get_blocks($block)) {
 	    $rbase->create_block($block);
 	}
     }
@@ -1153,16 +1152,16 @@ sub run_graph {
 
     my $rbase = $self->_rbase_check();
 
-    my %blocks = %{$rbase->get_cmdfiles()};
+    my %blocks = %{$rbase->get_blocks()};
 
     unless (exists $blocks{$block}) {
 	croak("ERROR: Block=$block doesnt exist at rbase=$rbase.");
     }
 
-    $rbase->run_block($block);
+    $rbase->run_commands($block);
 
     my $filegraph = $self->get_grfile();
-    my $fileresult = $rbase->get_resultfiles($block);
+    my $fileresult = $rbase->get_blocks($block)->get_result_file();
     
     return ($filegraph, $fileresult);
 }
