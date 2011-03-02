@@ -36,6 +36,7 @@ use Test::Warn;
 
 use File::stat;
 use File::Spec;
+use File::Path qw( make_path remove_tree);
 use Image::Size;
 use Cwd;
 
@@ -77,7 +78,7 @@ BEGIN {
 	plan skip_all => "No R path was found in PATH or RBASE. Aborting test.";
     }
 
-    plan tests => 14;
+    plan tests => 29;
 }
 
 
@@ -88,14 +89,10 @@ BEGIN {
     use_ok('R::YapRI::Block');
 }
 
-## Add the object created to an array to clean them at the end of the script
-
-my @rbase_objs = ();
 
 ## Create an empty object and test the possible die functions. 
 
 my $rbase0 = R::YapRI::Base->new();
-push @rbase_objs, $rbase0;
 
 ## Create a new block, TEST 3 to 6
 
@@ -114,7 +111,7 @@ throws_ok { R::YapRI::Block->new($rbase0) } qr/ARG. ERROR: No blockname/,
 throws_ok { R::YapRI::Block->new('fake', 'BLOCK1') } qr/ARG. ERROR: fake/, 
     'TESTING DIE ERROR when rbase supplied to new() isnt a rbase object';
 
-## accessors, TEST 7 to 9
+## accessors, TEST 7 and 8
 
 is(ref($rblock0->get_rbase()), 'R::YapRI::Base',
     "Testing get_rbase accessor, checking object identity")
@@ -124,12 +121,65 @@ is($rblock0->get_blockname(), 'BLOCK0',
     "Testing get_blockname accessor, checking name")
     or diag("Looks like this has failed");
 
-is($rblock0->get_command_file(), $rbase0->get_cmdfiles('BLOCK0'),
-    "Testing get_command_file, checking command filename")
+
+## Create a couple of files (command and result files)
+## using create_rfile.
+
+## command/result_file accessors 9 to 18
+
+my $cmdfile0 = $rbase0->create_rfile();
+my $resfile0 = $rbase0->create_rfile('RiPerl_res');
+
+$rblock0->set_command_file($cmdfile0);
+is($rblock0->get_command_file(), $cmdfile0,
+    "Testing get/set_command_file accessor, testing filename")
+    or diag("Looks like this has failed");
+
+throws_ok { $rblock0->set_command_file() } qr/ERROR: No filename/, 
+    'TESTING DIE ERROR when no filename was supplied to set_command_file()';
+
+throws_ok { $rblock0->set_command_file('fake') } qr/ERROR: command file/, 
+    'TESTING DIE ERROR when file supplied to set_command_file() doesnt exists';
+
+$rblock0->set_result_file($resfile0);
+is($rblock0->get_result_file(), $resfile0,
+    "Testing get/set_result_file accessor, testing filename")
+    or diag("Looks like this has failed");
+
+throws_ok { $rblock0->set_result_file() } qr/ERROR: No filename/, 
+    'TESTING DIE ERROR when no filename was supplied to set_result_file()';
+
+throws_ok { $rblock0->set_result_file('fake') } qr/ERROR: result file/, 
+    'TESTING DIE ERROR when file supplied to set_result_file() doesnt exists';
+
+$rblock0->delete_command_file();
+
+is($rblock0->get_command_file(), '',
+    "Testing delete_command_file, checking empty command file")
+    or diag("Looks like this has failed");
+
+is(-f $cmdfile0, undef, 
+    "Testing delete_command_file, checking file deleted")
     or diag("Looks like this has failed");
 
 
-## Test add/read_command, TEST 10 to 12
+$rblock0->delete_result_file();
+
+is($rblock0->get_result_file(), '',
+    "Testing delete_result_file, checking empty command file")
+    or diag("Looks like this has failed");
+
+is(-f $resfile0, undef, 
+    "Testing delete_result_file, checking file deleted")
+    or diag("Looks like this has failed");
+
+
+## Reset the command file.
+
+$rblock0->set_command_file($rbase0->create_rfile());
+
+
+## Test add/read_command, TEST 19 to 21
 
 my $cmd0 = 'x <- c(1,2,3,4,5)';
 
@@ -147,13 +197,17 @@ throws_ok { $rblock0->add_command([]) } qr/ERROR: ARRAY/,
     'TESTING DIE ERROR when arg. supplied to add_command() isnt scalar or href';
 
 
-## Test run_command and get results, TEST 13 and 14
+## Test run_command and get results, TEST 22 to 24
 
 $rblock0->add_command({ mean => { 'x' => '' }});
 $rblock0->run_block();
 
-is($rblock0->get_result_file(), $rbase0->get_resultfiles('BLOCK0'), 
-    "Testing get_result_file, checking result file")
+is(-f $rblock0->get_result_file(), 1,
+    "Testing get_result_file, checking exists result file")
+    or diag("Looks like this has failed");
+
+is($rblock0->get_result_file() =~ m/RiPerlresult_/, 1,
+    "Testing get_result_file, checking exists default name")
     or diag("Looks like this has failed");
 
 my @results = $rblock0->read_results();
@@ -163,17 +217,55 @@ is($results[0], '[1] 3',
     or diag("looks like this has failed");
 
 
+## Checking object creation with an specific command filename, TEST 25
+
+my $cmdfile2 = $rbase0->create_rfile('test'); 
+my $block2 = R::YapRI::Block->new($rbase0, 'BLOCK2', $cmdfile2);
+
+is($block2->get_command_file(), $cmdfile2, 
+    "Testing new() with a specific command file, testing filename")
+    or diag("Looks like this has failed");
 
 
+## Checking DESTROY, TEST 26 to 29
+## It will use the DESTROY function undef the variable
 
-##############################################################
-## Finally it will clean the files produced during the test ##
-##############################################################
+## To use destroy it will need to remove the object from the two
+## places where is stored, rbase and rblock
 
-foreach my $clean_rbase (@rbase_objs) {
-    $clean_rbase->cleanup()
-}
+delete($rbase0->{blocks}->{$block2->get_blockname()});
+$block2 = undef;
+
+is($block2, undef, 
+    "Testing DESTROY, checking object undef")
+    or diag("Looks like this has failed");
+
+is(-f $cmdfile2, undef, 
+    "Testing DESTROY, checking that the command file has been deleted")
+    or diag("Looks like this has failed");
+
+my $cmdfile3 = $rbase0->create_rfile('test'); 
+my $block3 = R::YapRI::Block->new($rbase0, 'BLOCK3', $cmdfile3);
+
+$rbase0->enable_keepfiles();
+
+delete($rbase0->{blocks}->{$block3->get_blockname()});
+$block3 = undef;
+
+is($block3, undef, 
+    "Testing DESTROY keeping files, checking object undef")
+    or diag("Looks like this has failed");
+
+is(-f $cmdfile3, 1, 
+    "Testing DESTROY keeping files, checking that command file still exists")
+    or diag("Looks like this has failed");
+
+remove_tree($cmdfile3);
+
+$rbase0->disable_keepfiles();
   
+#$rbase0->DESTROY();
+
 ####
 1; #
 ####

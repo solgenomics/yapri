@@ -110,9 +110,12 @@ The following class methods are implemented:
 
   Args: $rbase, a R::YapRI::Base object.
         $blockname, an scalar, a blockname
+        $cmdfile, a filename with the command file (optional).
         
   Side_Effects: Die if no arguments are used.
                 Die if $rbase argument is not a R::YapRI::Base object.
+                Create a new command file if no commandfile is supplied.
+                Add the block created to rbase object.
 
   Example: my $rblock = R::YapRI::Block->new($rbase, 'MyBlock');           
 
@@ -124,6 +127,8 @@ sub new {
 	croak("ARG. ERROR: No rbase object was supplied to new() function.");
     my $blockname = shift ||
 	croak("ARG. ERROR: No blockname was supplied to new() function.");
+    
+    my $cmdfile = shift;
 
     my $self = bless( {}, $class ); 
 
@@ -133,16 +138,27 @@ sub new {
 	croak("ARG. ERROR: $rbase supplied to new() isnt a R::YapRI::Base obj");
     }
 
-    ## Create a new block into the rbase object
+    ## Check if the block exists, if not 
+    ## create a new block into the rbase object
 
-    $rbase->add_cmdfile($blockname);
+    my $block = $rbase->get_blocks($blockname);
+    
+    unless (defined $block) {
+	
+	unless (defined $cmdfile) {
+	    $cmdfile = $rbase->create_rfile();	    
+	}
 
-    ## Set values without accessors, in the way that it can not overwrite these 
-    ## values
+	$self->{rbase} = $rbase;
+	$self->{blockname} = $blockname;
+	$self->set_command_file($cmdfile);
 
-    $self->{rbase} = $rbase;
-    $self->{blockname} = $blockname;
-
+	$rbase->add_block($self);
+    }
+    else {
+	croak("ERROR: $blockname exists into the rbase object. Aborting new");
+    }
+    
     return $self;
 }
 
@@ -156,7 +172,7 @@ sub new {
 
 =head1 (*) ACCESSORS:
 
- No set accessors have been created. 
+ No set accessors have been created for rbase or blockname. 
  They are controlled by R::YapRI::Base object.
 
 =head2 ------------
@@ -223,19 +239,80 @@ sub get_blockname {
 
 sub get_command_file {
     my $self = shift;
-
-    my $rbase = $self->get_rbase();
-    my $blockname = $self->get_blockname();
-
-    return $rbase->get_cmdfiles($blockname);
+    return $self->{command_file};
 }
+
+=head2 set_command_file
+
+  Usage: $rblock->set_command_file($filename); 
+
+  Desc: Set filename for a block
+
+  Ret: None
+
+  Args: $filename
+
+  Side_Effects: Die if no argument is used.
+
+  Example: $rblock->set_command_file($filename); 
+
+=cut
+
+sub set_command_file {
+    my $self = shift;
+    my $filename = shift;
+ 
+    unless (defined $filename) {
+	croak("ERROR: No filename was supplied to set_command_file().");
+    }
+    else { 
+	if (length($filename) > 0) {
+	    unless (-f $filename) {
+		croak("ERROR: command file $filename doesnt exist");
+	    }
+	}
+    }
+
+    $self->{command_file} = $filename;
+}
+
+
+=head2 delete_command_file
+
+  Usage: $rblock->delete_command_file(); 
+
+  Desc: Delete command filename for a block and set command file as empty
+
+  Ret: None
+
+  Args: None
+
+  Side_Effects: None
+
+  Example: $rblock->delete_command_file(); 
+
+=cut
+
+sub delete_command_file {
+    my $self = shift;
+    
+    my $cmdfile = $self->get_command_file();
+
+    if (defined $cmdfile && length($cmdfile) > 0) {
+	if (-f $cmdfile) {
+	    remove_tree($cmdfile); 
+	}
+    }
+    $self->set_command_file('');
+}
+
 
 
 =head2 get_result_file
 
   Usage: my $filename = $rblock->get_result_file(); 
 
-  Desc: Get result filename of the block from rbase object
+  Desc: Get result filename of the block
 
   Ret: $filename, the result filename for the block associated to rbase.
 
@@ -249,11 +326,71 @@ sub get_command_file {
 
 sub get_result_file {
     my $self = shift;
+    return $self->{result_file};
+}
 
-    my $rbase = $self->get_rbase();
-    my $blockname = $self->get_blockname();
+=head2 set_result_file
 
-    return $rbase->get_resultfiles($blockname);
+  Usage: $rblock->set_result_file($filename); 
+
+  Desc: Set result filename for a block
+
+  Ret: None
+
+  Args: $filename, the result filename for the block associated to rbase.
+
+  Side_Effects: Die if no argument is used or if the result file doesnt exist
+
+  Example: $rblock->set_result_file($filename); 
+
+=cut
+
+sub set_result_file {
+    my $self = shift;
+    my $filename = shift;
+    
+    unless (defined $filename) {
+	croak("ERROR: No filename was supplied to set_result_file().");
+    }
+    else { 
+	if (length($filename) > 0) {
+	    unless (-f $filename) {
+		croak("ERROR: result file $filename doesnt exist");
+	    }
+	}
+    }
+
+    $self->{result_file} = $filename;
+}
+
+
+=head2 delete_result_file
+
+  Usage: $rblock->delete_result_file(); 
+
+  Desc: Delete result filename for a block and set command file as empty
+
+  Ret: None
+
+  Args: None
+
+  Side_Effects: None
+
+  Example: $rblock->delete_result_file(); 
+
+=cut
+
+sub delete_result_file {
+    my $self = shift;
+    
+    my $resfile = $self->get_result_file();
+
+    if (defined $resfile && length($resfile) > 0) {
+	if (-f $resfile) {
+	    remove_tree($resfile); 
+	}
+    }
+    $self->set_result_file('');
 }
 
 
@@ -353,7 +490,7 @@ sub run_block {
     my $self = shift;
 
     my $rbase = $self->get_rbase();
-    $rbase->run_command({ alias => $self->get_blockname() })
+    $rbase->run_commands($self->get_blockname());
 }
 
 
@@ -391,6 +528,47 @@ sub read_results {
     
     return @results;
 }
+
+
+################
+## DESTRUCTOR ##
+################
+
+=head2 DESTROY
+
+  Usage: $block->DESTROY(); 
+ 
+  Desc: Destructor for block object. It also delete the command file and
+        the result files associated with that block if keepfiles from
+        rbase is disabled
+
+  Ret: None
+
+  Args: None
+
+  Side_Effects: None
+
+  Example: $block->DESTROY();
+
+=cut
+
+sub DESTROY {
+    my $self = shift;
+    my $rbase = $self->get_rbase();
+    my $blockname = $self->get_blockname();
+
+    ## Need to delete this blocks from rbase first.
+    
+    if (defined $blockname && defined $rbase) {
+	delete($rbase->{blocks}->{$blockname});
+    }
+    
+    unless (exists $rbase->{keepfiles} && $rbase->{keepfiles} == 1) {
+	$self->delete_command_file();
+	$self->delete_result_file();
+    }
+}
+
 
 
 
