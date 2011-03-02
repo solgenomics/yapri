@@ -21,9 +21,9 @@ store all of them as variables in this object.
   $rih->add_command('plot(c(1, 5, 10), type = "l")');
   $rih->add_command('dev.off()');
  
-  $rih->run_command();
+  $rih->run_commands();
   
-  my $result_file = $rih->get_resultfiles('default');
+  my $result_file = $rih->get_blocks('default')->get_result_file();
 
 
 
@@ -33,14 +33,14 @@ store all of them as variables in this object.
 
   ## Create a file-block_1
 
-  $rih->add_cmdfile('BLOCK1');
+  $rih->create_block('BLOCK1');
   $rih->add_command('x <- c(10, 9, 8, 5)', 'BLOCK1');
   $rih->add_command('z <- c(12, 8, 8, 4)', 'BLOCK1');
   $rih->add_command('x + z', 'BLOCK1')
   
   ## Create a file-block_2
 
-  $rih->add_cmdfile('BLOCK2');   
+  $rih->create_block('BLOCK2');   
   $rih->add_command('bmp(filename="myfile.bmp", width=600, height=800)', 
                     'BLOCK2');
   $rih->add_command('dev.list()', 'BLOCK2');
@@ -48,13 +48,13 @@ store all of them as variables in this object.
   
   ## Run each block
 
-  $rih->run_command({ alias => 'BLOCK1' });
-  $rih->run_command({ alias => 'BLOCK2' });
+  $rih->run_command('BLOCK1');
+  $rih->run_command('BLOCK2');
 
   ## Get the results
 
-  my $resultfile1 = $rih->get_resultfiles('BLOCK1');
-  my $resultfile2 = $rih->get_resultfiles('BLOCK2'); 
+  my $resultfile1 = $rih->get_blocks('BLOCK1')->get_result_file();
+  my $resultfile2 = $rih->get_blocks('BLOCK2')->get_result_file(); 
 
 
  Example of a module that uses R::YapRI::Base, and R::YapRI::Data::Matrix to
@@ -74,7 +74,7 @@ store all of them as variables in this object.
  
  $rih2->create_block('TRMATRIX', $matrix->get_name());
  $rih2->add_command('trmatrix1 <- t('.$matrix->get_name().')', 'TRMATRIX');
- $rih2->run_block('TRMATRIX');    
+ $rih2->run_commands('TRMATRIX');    
  my $trmatrix = R::YapRI::Data::Matrix->read_rbase( $rih2, 
                                                     'TRMATRIX', 
                                                     'trmatrix1');
