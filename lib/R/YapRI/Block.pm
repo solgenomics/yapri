@@ -300,7 +300,7 @@ sub delete_command_file {
 
     if (defined $cmdfile && length($cmdfile) > 0) {
 	if (-f $cmdfile) {
-	    remove_tree($cmdfile); 
+	    unlink($cmdfile); 
 	}
     }
     $self->set_command_file('');
@@ -387,7 +387,7 @@ sub delete_result_file {
 
     if (defined $resfile && length($resfile) > 0) {
 	if (-f $resfile) {
-	    remove_tree($resfile); 
+	    unlink($resfile); 
 	}
     }
     $self->set_result_file('');

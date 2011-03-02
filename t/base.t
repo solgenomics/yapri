@@ -196,7 +196,7 @@ is($dirname =~ m/$cmddir0/, 1,
     "testing create_rfile, checking dirname")
     or diag("Looks like this has failed");
 
-remove_tree($rfile);
+unlink($rfile);
 
 $rbase0->set_cmddir('');
 
@@ -364,7 +364,7 @@ throws_ok { $rbase1->add_command('x <- c(9)', 'fake') } qr/ERROR: Block=fake/,
 
 my $fblock = R::YapRI::Block->new($rbase1, 'FBLOCK1');
 my $fcmdfile = $fblock->get_command_file();
-remove_tree($fcmdfile);
+unlink($fcmdfile);
 
 throws_ok { $rbase1->add_command('x <- c(9)', 'FBLOCK1') } qr/ERROR: cmdfile/, 
     'TESTING DIE ERROR when cmdfile for block isnt set using add_command()';

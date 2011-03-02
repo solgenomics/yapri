@@ -260,7 +260,7 @@ is(-f $cmdfile3, 1,
     "Testing DESTROY keeping files, checking that command file still exists")
     or diag("Looks like this has failed");
 
-remove_tree($cmdfile3);
+unlink($cmdfile3);
 
 $rbase0->disable_keepfiles();
   
