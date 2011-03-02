@@ -1,15 +1,7 @@
+R-YapRI version 0.01
+====================
 
-  YapRI, is "Yet another perl R interface" developed initially to work with 
-different blocks of commands. 
-
-  It run the commands esentially as: 
-  R [options] --file=inputcommandfile > outputresultfile
-
- So the R::YapRI::Base module, create files, put them in a temp dir by default, 
-open these files, write the R commands to them, execute the files and 
-store all of them as variables in this object.
-
-  Here a synopsis of how works:
+SYPNOSIS
 
   use R::YapRI::Base;
 
@@ -78,3 +70,40 @@ store all of them as variables in this object.
  my $trmatrix = R::YapRI::Data::Matrix->read_rbase( $rih2, 
                                                     'TRMATRIX', 
                                                     'trmatrix1');
+
+
+DESCRIPTION
+
+YapRI, is "Yet another perl R interface" developed initially to work with 
+different blocks of commands. 
+
+  It run the commands esentially as: 
+  R [options] --file=inputcommandfile > outputresultfile
+
+ So the R::YapRI::Base module, create files, put them in a temp dir by default, 
+open these files, write the R commands to them, execute the files and 
+store all of them as variables in this object.
+
+INSTALLATION
+
+To install this module type the following:
+
+   perl Makefile.PL
+   make
+   make test
+   make install
+
+DEPENDENCIES
+
+  Test::More
+  Test::Exception
+  Test::Warn
+  Image::Size
+
+COPYRIGHT AND LICENCE
+
+Copyright (C) 2011 by Aureliano Bombarely
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.10.1 or,
+at your option, any later version of Perl 5 you may have available.
