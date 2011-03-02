@@ -1716,7 +1716,7 @@ sub _matrix_cmd {
 
     ## Add data using r_var function to convert in per R string
     
-    $cmd .= R::YapRI::Base::r_var($self->get_data()) . ', ';
+    $cmd .= r_var($self->get_data()) . ', ';
     
     ## add rown, coln and byrow=TRUE
     
@@ -1727,8 +1727,8 @@ sub _matrix_cmd {
     ## Finally it will add the row and col names
 
     $cmd .= 'dimnames=list(';    
-    $cmd .= R::YapRI::Base::r_var($self->get_rownames()) . ', ';
-    $cmd .= R::YapRI::Base::r_var($self->get_colnames()) . ')';
+    $cmd .= r_var($self->get_rownames()) . ', ';
+    $cmd .= r_var($self->get_colnames()) . ')';
     
     ## And close the matrix
     $cmd .= ')';
@@ -1929,9 +1929,8 @@ sub send_rbase {
 
     ## Check if Block exist for rbase
 
-    my %blocks = %{$rbase->get_cmdfiles()};
     if ($block =~ m/./) {
-	unless (exists $blocks{$block}) {
+	unless (defined $rbase->get_blocks($block)) {
 	    croak("ERROR: $block isnt defined for $rbase. Aborting send_rbase");
 	}
     }
@@ -2014,13 +2013,12 @@ sub read_rbase {
     ## Check object identity
 
     if (ref($rbase) ne 'R::YapRI::Base') {
-	croak("ERROR: $rbase object supplied to read_rbase() isnt R::YapRI::Base");
+    croak("ERROR: $rbase object supplied to read_rbase() isnt R::YapRI::Base");
     }
 
     ## Check that exists the block used
 
-    my %cmdfiles = %{$rbase->get_cmdfiles()};
-    unless (defined $cmdfiles{$block}) {
+    unless (defined $rbase->get_blocks($block)) {
 	croak("ERROR: Block=$block doesnt exist for $rbase object.");
     }
 
@@ -2066,8 +2064,8 @@ sub read_rbase {
 
     ## Run and get the result file
 
-    $rbase->run_block($mblock);
-    my $rfile = $rbase->get_resultfiles($mblock);
+    $rbase->run_commands($mblock);
+    my $rfile = $rbase->get_blocks($mblock)->get_result_file();
 
     ## Parse the result file and transfer the data to the perl vars.
 

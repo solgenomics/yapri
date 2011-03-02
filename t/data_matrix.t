@@ -473,8 +473,8 @@ my $t_cmd1 = 'print(transp_' . $mtxname . ')';
 $rih->add_command($t_cmd0, 'TRANSPOSE_CMD');
 $rih->add_command($t_cmd1, 'TRANSPOSE_CMD');
 $rih->combine_blocks([$mtxname, 'TRANSPOSE_CMD'], 'MTX_TRANS');
-$rih->run_block('MTX_TRANS');
-my $resultfile1 = $rih->get_resultfiles('MTX_TRANS');
+$rih->run_commands('MTX_TRANS');
+my $resultfile1 = $rih->get_blocks('MTX_TRANS')->get_result_file();
 
 ## The original matrix is:
 ##
@@ -752,13 +752,7 @@ is(join(',', @{$tr_mtx5->get_data()}), '1,4,2,5,3,6',
 
 
 
-##############################################################
-## Finally it will clean the files produced during the test ##
-##############################################################
 
-foreach my $clean_rih (@rih_objs) {
-    $clean_rih->cleanup()
-}
   
 ####
 1; #
