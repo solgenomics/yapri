@@ -3,14 +3,14 @@ use Module::Build;
 
 my $build = Module::Build->new(
     module_name        => 'R::YapRI',
-    dist_name          => 'R::YapRI',
+    dist_name          => 'R-YapRI',
     dist_author        => 'Aureliano Bombarely',
     dist_abstract      => 'Yet another perl R interface',
     license            => 'perl',
     create_makefile_pl => 'passthrough',
 
     # current version of our core libraries distribution
-    dist_version => '0.01',
+    dist_version => '0.02',
 
     recursive_test_files => 1,
 
