@@ -26,7 +26,7 @@ A module to segment the R commands.
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 $VERSION = eval $VERSION;
 
 =head1 SYNOPSIS
@@ -75,7 +75,7 @@ $VERSION = eval $VERSION;
 
 =head1 DESCRIPTION
 
- A wrapper to use blocks with R::YapRI::Base
+A wrapper to use blocks with R::YapRI::Base
 
 
 =head1 AUTHOR
@@ -97,15 +97,15 @@ The following class methods are implemented:
 
 =head1 (*) CONSTRUCTORS:
 
- There are two ways to create a new block:
+There are two ways to create a new block:
  
- 1) Through rbase object.
-    my $rblock = $rbase->new_block($blockname);
+1) Through rbase object.
+my $rblock = $rbase->new_block($blockname);
 
- 2) Through R::YapRI::Block class
-    my $rblock = R::YapRI::Block->new($rbase, $blockname);
+2) Through R::YapRI::Block class
+my $rblock = R::YapRI::Block->new($rbase, $blockname);
 
- Both methods will add the new block to the rbase object.
+Both methods will add the new block to the rbase object.
 
 =head2 constructor new
 
@@ -179,8 +179,8 @@ sub new {
 
 =head1 (*) ACCESSORS:
 
- No set accessors have been created for rbase or blockname. 
- They are controlled by R::YapRI::Base object.
+No set accessors have been created for rbase or blockname. 
+They are controlled by R::YapRI::Base object.
 
 =head2 get_rbase
 
@@ -539,8 +539,8 @@ sub read_results {
 
 =head1 (*) DESTRUCTORS:
 
- Destructor will delete the files associated with this block (command and
- result) if the rbase switch keepfiles is disabled.
+Destructor will delete the files associated with this block (command and
+result) if the rbase switch keepfiles is disabled.
 
 =head2 DESTROY
 

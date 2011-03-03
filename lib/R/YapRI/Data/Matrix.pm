@@ -21,7 +21,7 @@ A module to build and pass a Matrix to a YapRI command file
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 $VERSION = eval $VERSION;
 
 =head1 SYNOPSIS
@@ -84,17 +84,17 @@ $VERSION = eval $VERSION;
 
 =head1 DESCRIPTION
 
- This module pass perl variables to a R::YapRI::Data::Matrix object that convert
- them in a R command line that it is passed to R::YapRI::Base object as a block.
+This module pass perl variables to a R::YapRI::Data::Matrix object that convert
+them in a R command line that it is passed to R::YapRI::Base object as a block.
 
-   +-----------+    +----------------------+    +------------+    +---+--------+
-   | PerlData1 | => | YaRI::Data::Matrix 1 | => |            | => |   | Input  |
-   +-----------+    +----------------------+    | YaRI::Base |    | R |--------+
-   | PerlData2 | <= | YaRI::Data::Matrix 2 |<=  |            | <= |   | Output |
-   +-----------+    +----------------------+    +------------+    +---+--------+
++-----------+    +----------------------+    +------------+    +---+--------+
+| PerlData1 | => | YaRI::Data::Matrix 1 | => |            | => |   | Input  |
++-----------+    +----------------------+    | YaRI::Base |    | R |--------+
+| PerlData2 | <= | YaRI::Data::Matrix 2 |<=  |            | <= |   | Output |
++-----------+    +----------------------+    +------------+    +---+--------+
 
- It lets export data to R frame as: matrix (default), data.frames, vector 
- (by_rows or by_columns) and list (by_rows or by_columns).
+It lets export data to R frame as: matrix (default), data.frames, vector 
+(by_rows or by_columns) and list (by_rows or by_columns).
 
 
 =head1 AUTHOR

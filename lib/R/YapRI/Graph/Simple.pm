@@ -25,7 +25,7 @@ A module to create simple graphs using R through R::YapRI::Base
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 $VERSION = eval $VERSION;
 
 =head1 SYNOPSIS
@@ -72,26 +72,27 @@ $VERSION = eval $VERSION;
 
 =head1 DESCRIPTION
 
- This module is a wrapper of R::YapRI::Base to create simple graphs using R, 
- with the following features:
+This module is a wrapper of R::YapRI::Base to create simple graphs using R, 
+with the following features:
 
-  1) It loads the data from Perl to R using R::YapRI::Data::Matrix.
+1) It loads the data from Perl to R using R::YapRI::Data::Matrix.
   
-  2) It works with blocks, so it can define a block in the beginning of
-     the module/script and use as base to add the data and the graph creation
-     commands.
+2) It works with blocks, so it can define a block in the beginning of
+the module/script and use as base to add the data and the graph creation
+commands.
 
-  3) It runs the following R commands acording the different accessors:
-      - device:  bmp, jpeg, tiff, png, postscript or pdf.
-      - grparam: par.
-      - sgraph (high-level plotting commands): plot, pairs, hist, dotchart, 
-                                               barplot, pie or boxplot.
-      - gritems (low-level plotting commands): points, lines, abline, polygon, 
-                                               legend, title and axis.
+3) It runs the following R commands acording the different accessors:
+- device:  bmp, jpeg, tiff, png, postscript or pdf.
+- grparam: par.
+- sgraph (high-level plotting commands): plot, pairs, hist, dotchart, 
+                                         barplot, pie or boxplot.
+- gritems (low-level plotting commands): points, lines, abline, polygon, 
+                                         legend, title and axis.
 
-  4) It uses two commands to create the file with the graph:
-     + build_graph(), to write into the R::YapRI::Base block the R commands.
-     + run_graph(), to executate the R commands from the block.
+4) It uses two commands to create the file with the graph:
+
++ build_graph(), to write into the R::YapRI::Base block the R commands.
++ run_graph(), to executate the R commands from the block.
 
 
 =head1 AUTHOR

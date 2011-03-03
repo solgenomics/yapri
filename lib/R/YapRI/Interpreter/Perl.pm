@@ -25,7 +25,7 @@ A module to transform perl variables into R command lines to define simple objs.
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 $VERSION = eval $VERSION;
 
 =head1 SYNOPSIS
@@ -39,52 +39,52 @@ $VERSION = eval $VERSION;
 
 =head1 DESCRIPTION
 
- A interpreter to translate Perl variables into R commands.
+A interpreter to translate Perl variables into R commands.
 
-  +==================+==============+===============================+
-  |  PERL VARIABLE   |  R VARIABLE  | Example                       |
-  +==================+==============+===============+===============+
-  | undef            | NULL         | $px = undef   | rx <- NULL    |
-  +------------------+--------------+---------------+---------------+
-  | empty ('' or "") | NA           | $px = ''      | rx <- NA      |
-  +------------------+--------------+---------------+---------------+
-  | integer          | numeric      | $px = 12      | rx <- 12      |
-  +------------------+--------------+---------------+---------------+
-  | bigint,bigfloat  | numeric      | $px = '-1.2'  | rx <- -1.2    |
-  +------------------+--------------+---------------+---------------+
-  | word 'TRUE'      | TRUE         | $px = 'TRUE'  | rx <- TRUE    |
-  +------------------+--------------+---------------+---------------+
-  | word 'FALSE'     | FALSE        | $px = 'FALSE' | rx <- FALSE   |
-  +------------------+--------------+---------------+---------------+
-  | any other word   | character    | $px = "sun"   | rx <- "sun"   |
-  +------------------+--------------+---------------+---------------+
-  | ARRAY REF.       | vector       | $px = [1, 2]  | rx <- c(1, 2) |
-  +------------------+--------------+---------------+---------------+
-  | HASH REF.        | object       | see below (*)                 |
-  +------------------+--------------+-------------------------------+
++==================+==============+===============================+
+|  PERL VARIABLE   |  R VARIABLE  | Example                       |
++==================+==============+===============+===============+
+| undef            | NULL         | $px = undef   | rx <- NULL    |
++------------------+--------------+---------------+---------------+
+| empty ('' or "") | NA           | $px = ''      | rx <- NA      |
++------------------+--------------+---------------+---------------+
+| integer          | numeric      | $px = 12      | rx <- 12      |
++------------------+--------------+---------------+---------------+
+| bigint,bigfloat  | numeric      | $px = '-1.2'  | rx <- -1.2    |
++------------------+--------------+---------------+---------------+
+| word 'TRUE'      | TRUE         | $px = 'TRUE'  | rx <- TRUE    |
++------------------+--------------+---------------+---------------+
+| word 'FALSE'     | FALSE        | $px = 'FALSE' | rx <- FALSE   |
++------------------+--------------+---------------+---------------+
+| any other word   | character    | $px = "sun"   | rx <- "sun"   |
++------------------+--------------+---------------+---------------+
+| ARRAY REF.       | vector       | $px = [1, 2]  | rx <- c(1, 2) |
++------------------+--------------+---------------+---------------+
+| HASH REF.        | object       | see below (*)                 |
++------------------+--------------+-------------------------------+
         
-    * R object or R function without arguments
+* R object or R function without arguments
 
-      $px = { a => undef }, will be just 'a'  
-      $px = { mass => '' }, will be just 'mass'
+  $px = { a => undef }, will be just 'a'  
+  $px = { mass => '' }, will be just 'mass'
 
-    * R simple object with arguments
+* R simple object with arguments
 
-      $px = { '' => { x => 2 }}, will be 'x = 2'
-      $px = { '' => { x => [2, 4] }}, will be 'x = c(2, 4)
+  $px = { '' => { x => 2 }}, will be 'x = 2'
+  $px = { '' => { x => [2, 4] }}, will be 'x = c(2, 4)
 
-    * R functions with arguments 
+* R functions with arguments 
 
-      $px = { log  => 2  }, will be 'log(2)'
-      $px = { log  => [2, { base => 10 }] }, will be 'log(2, base = 10 )'
-      $px = { t    => {x => ''} }, will be 't(x)'
-      $px = { plot => [{ x => ''}, { main => "TEST"} ]}, will be:
-              plot(x, main = "TEST")
+  $px = { log  => 2  }, will be 'log(2)'
+  $px = { log  => [2, { base => 10 }] }, will be 'log(2, base = 10 )'
+  $px = { t    => {x => ''} }, will be 't(x)'
+  $px = { plot => [{ x => ''}, { main => "TEST"} ]}, will be:
+         plot(x, main = "TEST")
 
-      Use array ref. to order the arguments in a function.
-      Use hash ref keys to define an argument in an R function 
+Use array ref. to order the arguments in a function.
+Use hash ref keys to define an argument in an R function 
 
-      For more complex data structures, use R::YapRI::Data::Matrix.
+For more complex data structures, use R::YapRI::Data::Matrix.
      
 
 =head1 AUTHOR

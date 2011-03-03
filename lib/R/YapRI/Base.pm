@@ -26,7 +26,7 @@ A wrapper to interact with R/
 
 =cut
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 $VERSION = eval $VERSION;
 
 =head1 SYNOPSIS
@@ -52,31 +52,31 @@ $VERSION = eval $VERSION;
 
 =head1 DESCRIPTION
 
- Yet another perl wrapper to interact with R. 
- This module is the central module to use R::YapRI. 
+Yet another perl wrapper to interact with R. 
+This module is the central module to use R::YapRI. 
 
- If R executable is in the PATH or in RBASE environment variables of your
- system, R commands can be run using this perl module with four methods:
- - new(), 
- - add_command('my R command'),
- - run_command(),
- - get_result_file();
+If R executable is in the PATH or in RBASE environment variables of your
+system, R commands can be run using this perl module with four methods:
+- new(), 
+- add_command('my R command'),
+- run_command(),
+- get_result_file();
 
- The mechanism is simple, it write R commands into a command file and 
- executate it using the R as command line: 
-   R [options] < infile > outfile
+The mechanism is simple, it write R commands into a command file and 
+executate it using the R as command line: 
+R [options] < infile > outfile
 
- R::YapRI, is a package to manage the infile as command_file and outfile 
- as result_file, with some other tools (blocks, interpreters, switches...).
+R::YapRI, is a package to manage the infile as command_file and outfile 
+as result_file, with some other tools (blocks, interpreters, switches...).
 
- It can work with a block system to create, combine and run different blocks 
- (every one with a command file and result file associated, see R::YapRI::Block)
+It can work with a block system to create, combine and run different blocks 
+(every one with a command file and result file associated, see R::YapRI::Block)
 
- It uses two switches to trace the R commands that you are running:
- - disable_keepfiles/enable_keepfiles, to do not delete the command files and
-   the result files after the executation of the code.
- - disable_debug/enable_debug, to print as STDERR the R commands from the 
-   command file before executate them.
+It uses two switches to trace the R commands that you are running:
+- disable_keepfiles/enable_keepfiles, to do not delete the command files and
+the result files after the executation of the code.
+- disable_debug/enable_debug, to print as STDERR the R commands from the 
+command file before executate them.
 
 =head1 AUTHOR
 
@@ -97,32 +97,34 @@ The following class methods are implemented:
 
 =head1 (*) CONSTRUCTORS:
 
- R::YapRI::Base has just one constructor: new(). It can be used in three
- different ways:
+R::YapRI::Base has just one constructor: new(). It can be used in three
+different ways:
 
- 1) With default arguments:
-    - It will create cmddir in the temp folder: RiPerldir_XXXXXXXX
-    - It will create the 'default' block with the command file 
-      RiPerl_cmd_XXXXXXXX into the cmddir.
-    - It will run R with --vanilla option.
-    - 'keepfiles' and 'debug' switches will be disabled.
+1) With default arguments:
 
-    Example:  my $rbase = R::YapRI::Base->new();
+- It will create cmddir in the temp folder: RiPerldir_XXXXXXXX
+- It will create the 'default' block with the command file 
+RiPerl_cmd_XXXXXXXX into the cmddir.
+- It will run R with --vanilla option.
+- 'keepfiles' and 'debug' switches will be disabled.
 
- 2) With user arguments:
-    Any of the following arguments can be used: 
-    cmddir, r_options, debug and keepfiles
-    These arguments will overwrite default arguments except if use_defaults =>
-    0 is used. In this case no initial 'default block' will be created, and
-    if no 'cmddir' is used, it will not be created (see empty object below)
+Example:  my $rbase = R::YapRI::Base->new();
+
+2) With user arguments:
+
+Any of the following arguments can be used: 
+cmddir, r_options, debug and keepfiles
+These arguments will overwrite default arguments except if use_defaults =>
+0 is used. In this case no initial 'default block' will be created, and
+if no 'cmddir' is used, it will not be created (see empty object below)
     
-    Example: my $rbase = R::YapRI::Base->new({ cmddir => 'mydir' });
+Example: my $rbase = R::YapRI::Base->new({ cmddir => 'mydir' });
 
- 3) With use_default => 0, an empty object will be created without
-    cmddir, blocks or r_options. 
-    debug and keepfile switches will be disabled.
+3) With use_default => 0, an empty object will be created without
+cmddir, blocks or r_options. 
+debug and keepfile switches will be disabled.
 
-    Example: my $rbase = R::YapRI::Base->new({ use_defaults => 0 });
+Example: my $rbase = R::YapRI::Base->new({ use_defaults => 0 });
 
 
 =head2 constructor new
@@ -259,7 +261,7 @@ sub new {
 
 =head1 (*) DEBUGGING SWITCH METHODS:
 
- R::YapRI has two switches to trace the R commands that has been run.
+R::YapRI has two switches to trace the R commands that has been run.
 
 =head2 enable/disable_keepfiles
 
@@ -329,7 +331,7 @@ sub disable_debug {
 
 =head1 (*) ACCESSORS:
 
- Three different accessors: cmddir, blocks and r_options
+Three different accessors: cmddir, blocks and r_options
 
 =head2 get_cmddir
 
@@ -682,10 +684,10 @@ sub set_default_r_options {
 
 =head1 (*) WRAPPERS FOR BLOCK ACCESSORS:
 
- These methods are wrappers to access to the rblock objects through
- rbase object. They have the same name than the methods for R::YapRI::Block.
+These methods are wrappers to access to the rblock objects through
+rbase object. They have the same name than the methods for R::YapRI::Block.
  
- If no argument is used it will access to 'default' rblock.
+If no argument is used it will access to 'default' rblock.
 
 =head2 get_command_file, set_command_file
 
@@ -804,7 +806,7 @@ sub set_result_file {
 
 =head1 (*) FILE METHODS:
 
- Internal methods to create files in the cmddir.
+Internal methods to create files in the cmddir.
 
 =head2 create_rfile
 
@@ -845,10 +847,10 @@ sub create_rfile {
 
 =head1 (*) COMMAND METHODS:
 
- Methods to add,get or run command from the command files associated with
- the blocks.
+Methods to add,get or run command from the command files associated with
+the blocks.
 
- If no blockname is used, it will assume that 'default' block is being used.
+If no blockname is used, it will assume that 'default' block is being used.
 
 =head2 add_command
 
@@ -1088,9 +1090,9 @@ sub _system_r {
 
 =head1 (*) BLOCK METHODS:
 
- They are a collection of methods to enhance the usage of R::YapRI::Block
- through rbase object, like create new blocks, create blocks using another
- blocks as a base or combine blocks.
+They are a collection of methods to enhance the usage of R::YapRI::Block
+through rbase object, like create new blocks, create blocks using another
+blocks as a base or combine blocks.
 
 =head2 combine_blocks
 
@@ -1196,11 +1198,11 @@ sub create_block {
 
 =head1 (*) R OBJECTS METHODS:
 
- They are a collection of methods to interact with the R objects creating 
- and running blocks to get some data from R, like class for an object
- or arguments for a function.
+They are a collection of methods to interact with the R objects creating 
+and running blocks to get some data from R, like class for an object
+or arguments for a function.
 
- They will be moved to R::YapRI::Interpreter::R soon.
+They will be moved to R::YapRI::Interpreter::R soon.
 
 =head2 r_object_class
 
@@ -1412,8 +1414,8 @@ sub r_function_args {
 
 =head1 (*) DESTRUCTOR:
 
- Destructor will delete the cmddir and the files contained by it if switch
- keepfiles is disabled.
+Destructor will delete the cmddir and the files contained by it if switch
+keepfiles is disabled.
 
 =head2 DESTROY
 
