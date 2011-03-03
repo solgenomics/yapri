@@ -2,7 +2,8 @@ use strict;
 use Module::Build;
 
 my $build = Module::Build->new(
-    dist_name          => 'YapRI',
+    module_name        => 'R::YapRI',
+    dist_name          => 'R::YapRI',
     dist_author        => 'Aureliano Bombarely',
     dist_abstract      => 'Yet another perl R interface',
     license            => 'perl',
