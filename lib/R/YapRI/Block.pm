@@ -97,8 +97,15 @@ The following class methods are implemented:
 
 =head1 (*) CONSTRUCTORS:
 
-=head2 ---------------
+ There are two ways to create a new block:
+ 
+ 1) Through rbase object.
+    my $rblock = $rbase->new_block($blockname);
 
+ 2) Through R::YapRI::Block class
+    my $rblock = R::YapRI::Block->new($rbase, $blockname);
+
+ Both methods will add the new block to the rbase object.
 
 =head2 constructor new
 
@@ -174,8 +181,6 @@ sub new {
 
  No set accessors have been created for rbase or blockname. 
  They are controlled by R::YapRI::Base object.
-
-=head2 ------------
 
 =head2 get_rbase
 
@@ -400,8 +405,6 @@ sub delete_result_file {
 
 =head1 (*) COMMAND METHODS:
 
-=head2 ------------------
-
 =head2 add_command
 
   Usage: $rblock->add_command($r_command); 
@@ -533,6 +536,11 @@ sub read_results {
 ################
 ## DESTRUCTOR ##
 ################
+
+=head1 (*) DESTRUCTORS:
+
+ Destructor will delete the files associated with this block (command and
+ result) if the rbase switch keepfiles is disabled.
 
 =head2 DESTROY
 

@@ -113,8 +113,6 @@ The following class methods are implemented:
 
 =head1 (*) CONSTRUCTORS:
 
-=head2 ---------------
-
 
 =head2 constructor new
 
@@ -228,8 +226,6 @@ sub new {
 ###############
 
 =head1 (*) ACCESSORS:
-
-=head2 ---------------
 
 
 =head2 get/set_rbase
@@ -782,9 +778,6 @@ sub is_device_enabled {
 
     return $enab;
 }
-
-
-
 
 
 

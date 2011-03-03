@@ -116,9 +116,6 @@ The following class methods are implemented:
 
 =head1 (*) CONSTRUCTORS:
 
-=head2 ---------------
-
-
 =head2 constructor new
 
   Usage: my $rmatrix = R::YapRI::Data::Matrix->new();
@@ -233,8 +230,6 @@ sub new {
 ###############
 
 =head1 (*) ACCESSORS:
-
-=head2 ------------
 
 
 =head2 get_name
@@ -625,9 +620,7 @@ sub set_data {
 ## INTERNAL FUNCTIONS ##
 ########################
 
-=head1 (*) INTERNAL FUNCTIONS:
-
-=head2 ---------------------
+=head1 (*) INTERNAL MATRIX FUNCTIONS:
 
 
 =head2 _get_indexes
@@ -856,8 +849,6 @@ sub _no_duplicate_names {
 #####################
 
 =head1 (*) DATA MANAGEMENT FUNCTIONS:
-
-=head2 ----------------------------
 
 
 =head2 set_coldata
@@ -1691,7 +1682,6 @@ sub get_element {
 
 =head1 (*) R. FUNCTIONS:
 
-=head2 ---------------
 
 =head2 _matrix_cmd
 
