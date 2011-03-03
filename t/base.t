@@ -79,7 +79,7 @@ BEGIN {
 	plan skip_all => "No R path was found in PATH or RBASE. Aborting test.";
     }
 
-    plan tests => 90;
+    plan tests => 96;
 }
 
 
@@ -651,13 +651,52 @@ throws_ok  { $rbase3->combine_blocks('test', 'fake') } qr/ERROR: test used/,
 throws_ok  { $rbase3->combine_blocks(['test'], 'fake') } qr/ERROR: test at/, 
     'TESTING DIE ERROR when one of the blocks of combine_blocks() doesnt exist';
 
+##################################
+## WRAPPERS FOR BLOCK ACCESSORS ##
+##################################
+
+## Test 78 to 83
+
+$rbase3->create_block('accblock');
+
+my $testblcmd = File::Spec->catfile($cmddir3, 'testcmdfile');
+open my $acfh, '>', $testblcmd;
+close($acfh);
+
+$rbase3->set_command_file($testblcmd);
+is($rbase3->get_command_file, $testblcmd,
+   "Testing get/set_command_file, wrapper for block, checking filename")
+    or diag("Looks like this has failed");
+    
+throws_ok  { $rbase3->set_command_file() } qr/ERROR: No command file/, 
+    'TESTING DIE ERROR when no commmand file is used for set_command_file()';
+
+throws_ok  { $rbase3->set_command_file($testblcmd, 'fk') } qr/ERROR: No block/, 
+    'TESTING DIE ERROR when blockname used for set_command_file doesnt exist';
+
+
+my $testblres = File::Spec->catfile($cmddir3, 'testresfile');
+open my $arfh, '>', $testblres;
+close($arfh);
+
+$rbase3->set_result_file($testblres);
+is($rbase3->get_result_file, $testblres,
+   "Testing get/set_result_file, wrapper for block, checking filename")
+    or diag("Looks like this has failed");
+
+throws_ok  { $rbase3->set_result_file() } qr/ERROR: No result file/, 
+    'TESTING DIE ERROR when no commmand file is used for set_result_file()';
+
+throws_ok  { $rbase3->set_result_file($testblres, 'fk') } qr/ERROR: No block/, 
+    'TESTING DIE ERROR when blockname used for set_result_file doesnt exist';
+
 
 #########################
 ## R OBJECTS FUNCTIONS ##
 #########################
 
 
-## Check objects identity, TEST 78 to 82
+## Check objects identity, TEST 84 to 88
 
 my $rbase4 = R::YapRI::Base->new();
 
@@ -687,7 +726,7 @@ throws_ok  { $rbase4->r_object_class('fake', 'x') } qr/ERROR: fake/,
     'TESTING DIE ERROR when block supplied to r_object_class() doesnt exist';
 
 
-## Check r_function_args, TEST 83 to 90
+## Check r_function_args, TEST 89 to 96
 
 my %plot_args1 = $rbase4->r_function_args('plot');
 
@@ -716,11 +755,11 @@ is($rbase4->get_blocks('GETARGSR_plot_2'), undef,
      "testing r_function_args for 'plot', checking deletion of blocks (2)")
      or diag("Looks like this has failed");
 
- is($rbase4->get_blocks('GETARGSR_plot_1'), undef, 
+is($rbase4->get_blocks('GETARGSR_plot_1'), undef, 
      "testing r_function_args for 'plot', checking deletion of blocks (1)")
      or diag("Looks like this has failed");
 
- is($rbase4->get_blocks('GETARGSR_plot_2'), undef, 
+is($rbase4->get_blocks('GETARGSR_plot_2'), undef, 
      "testing r_function_args for 'plot', checking deletion of blocks (2)")
      or diag("Looks like this has failed");
 

@@ -35,15 +35,15 @@ $VERSION = eval $VERSION;
 
   ## WORKING WITH THE DEFAULT MODE:
 
-  my $rih = R::YapRI::Base->new();
-  $rih->add_command('bmp(filename="myfile.bmp", width=600, height=800)');
-  $rih->add_command('dev.list()');
-  $rih->add_command('plot(c(1, 5, 10), type = "l")');
-  $rih->add_command('dev.off()');
+  my $rbase = R::YapRI::Base->new();
+  $rbase->add_command('bmp(filename="myfile.bmp", width=600, height=800)');
+  $rbase->add_command('dev.list()');
+  $rbase->add_command('plot(c(1, 5, 10), type = "l")');
+  $rbase->add_command('dev.off()');
  
-  $rih->run_command();
+  $rbase->run_command();
   
-  my $result_file = $rih->get_resultfiles('default');
+  my $result_file = $rbase->get_result_file();
 
   
   ## To work with blocks, check R::YapRI::Block
@@ -52,8 +52,31 @@ $VERSION = eval $VERSION;
 
 =head1 DESCRIPTION
 
- Another yet perl wrapper to interact with R
+ Yet another perl wrapper to interact with R. 
+ This module is the central module to use R::YapRI. 
 
+ If R executable is in the PATH or in RBASE environment variables of your
+ system, R commands can be run using this perl module with four methods:
+ - new(), 
+ - add_command('my R command'),
+ - run_command(),
+ - get_result_file();
+
+ The mechanism is simple, it write R commands into a command file and 
+ executate it using the R as command line: 
+   R [options] < infile > outfile
+
+ R::YapRI, is a package to manage the infile as command_file and outfile 
+ as result_file, with some other tools (blocks, interpreters, switches...).
+
+ It can work with a block system to create, combine and run different blocks 
+ (every one with a command file and result file associated, see R::YapRI::Block)
+
+ It uses two switches to trace the R commands that you are running:
+ - disable_keepfiles/enable_keepfiles, to do not delete the command files and
+   the result files after the executation of the code.
+ - disable_debug/enable_debug, to print as STDERR the R commands from the 
+   command file before executate them.
 
 =head1 AUTHOR
 
@@ -74,7 +97,32 @@ The following class methods are implemented:
 
 =head1 (*) CONSTRUCTORS:
 
-=head2 ---------------
+ R::YapRI::Base has just one constructor: new(). It can be used in three
+ different ways:
+
+ 1) With default arguments:
+    - It will create cmddir in the temp folder: RiPerldir_XXXXXXXX
+    - It will create the 'default' block with the command file 
+      RiPerl_cmd_XXXXXXXX into the cmddir.
+    - It will run R with --vanilla option.
+    - 'keepfiles' and 'debug' switches will be disabled.
+
+    Example:  my $rbase = R::YapRI::Base->new();
+
+ 2) With user arguments:
+    Any of the following arguments can be used: 
+    cmddir, r_options, debug and keepfiles
+    These arguments will overwrite default arguments except if use_defaults =>
+    0 is used. In this case no initial 'default block' will be created, and
+    if no 'cmddir' is used, it will not be created (see empty object below)
+    
+    Example: my $rbase = R::YapRI::Base->new({ cmddir => 'mydir' });
+
+ 3) With use_default => 0, an empty object will be created without
+    cmddir, blocks or r_options. 
+    debug and keepfile switches will be disabled.
+
+    Example: my $rbase = R::YapRI::Base->new({ use_defaults => 0 });
 
 
 =head2 constructor new
@@ -211,7 +259,7 @@ sub new {
 
 =head1 (*) DEBUGGING SWITCH METHODS:
 
-=head2 ---------------------------
+ R::YapRI has two switches to trace the R commands that has been run.
 
 =head2 enable/disable_keepfiles
 
@@ -281,7 +329,7 @@ sub disable_debug {
 
 =head1 (*) ACCESSORS:
 
-=head2 ------------
+ Three different accessors: cmddir, blocks and r_options
 
 =head2 get_cmddir
 
@@ -628,6 +676,126 @@ sub set_default_r_options {
     $self->{r_options} = $def_r_opts_pass;
 }
 
+##################################
+## WRAPPERS FOR BLOCK ACCESSORS ##
+##################################
+
+=head1 (*) WRAPPERS FOR BLOCK ACCESSORS:
+
+ These methods are wrappers to access to the rblock objects through
+ rbase object. They have the same name than the methods for R::YapRI::Block.
+ 
+ If no argument is used it will access to 'default' rblock.
+
+=head2 get_command_file, set_command_file
+
+  Usage: my $command_file = $rbase->get_command_file($blockname);
+         $rbase->get_command_file($command_file, $blockname);
+
+  Desc: Get/Set a command file associated to a block. Command file associated 
+        with the 'default' block will be got if no blockname argument is used.
+
+  Ret: Get: $command_file, a file path for the command file.
+       Set: none
+
+  Args: Get: $blockname, optional.
+        Set: $command_file, a file path for the command file, and $blockname.
+
+  Side_Effects: Get: 'default' blockname will be used if no blockname is used.
+                     undef will be returned if no blockname exist in the rbase 
+                     object with that name.
+                Set: Same than the original method (die if no command_file
+                     argument is used or if the file does not exist) and die
+                     if the blockname used does note exist in rbase
+
+  Example: my $command_file = $rbase->get_command_file('block1');
+           my $default_command_file = $rbase->get_command_file();
+
+           $rbase->get_command_file($command_file, 'block1');
+
+=cut
+
+sub get_command_file {
+    my $self = shift;
+    my $blockname = shift || 'default';
+
+    my $cmdfile;
+    my $block = $self->get_blocks($blockname);
+    if (defined $block) {
+	$cmdfile = $block->get_command_file();
+    }
+    return $cmdfile;
+}
+
+sub set_command_file {
+    my $self = shift;
+    my $cmd_file = shift ||
+	croak("ERROR: No command file was supplied to set_command_file");
+    my $blockname = shift || 'default';
+
+    my $block = $self->get_blocks($blockname);
+    if (defined $block) {
+	$block->set_command_file($cmd_file);
+    }
+    else {
+	croak("ERROR: No blockname exist with $blockname for set_command_file");
+    }
+}
+
+=head2 get_result_file, set_result_file
+
+  Usage: my $result_file = $rbase->get_result_file($blockname);
+         $rbase->get_result_file($result_file, $blockname);
+
+  Desc: Get/Set a result file associated to a block. Result file associated 
+        with the 'default' block will be got if no blockname argument is used.
+
+  Ret: Get: $result_file, a file path for the result file.
+       Set: none
+
+  Args: Get: $blockname, optional.
+        Set: $result_file, a file path for the result file, and $blockname.
+
+  Side_Effects: Get: 'default' blockname will be used if no blockname is used.
+                     undef will be returned if no blockname exist in the rbase 
+                     object with that name.
+                Set: Same than the original method (die if no result_file
+                     argument is used or if the file does not exist) and die
+                     if the blockname used does note exist in rbase
+
+  Example: my $result_file = $rbase->get_result_file('block1');
+           my $default_result_file = $rbase->get_result_file();
+
+           $rbase->get_result_file($result_file, 'block1');
+
+=cut
+
+sub get_result_file {
+    my $self = shift;
+    my $blockname = shift || 'default';
+
+    my $resfile;
+    my $block = $self->get_blocks($blockname);
+    if (defined $block) {
+	$resfile = $block->get_result_file();
+    }
+    return $resfile;
+}
+
+sub set_result_file {
+    my $self = shift;
+    my $res_file = shift ||
+	croak("ERROR: No result file was supplied to set_result_file");
+    my $blockname = shift || 'default';
+
+    my $block = $self->get_blocks($blockname);
+    if (defined $block) {
+	$block->set_result_file($res_file);
+    }
+    else {
+	croak("ERROR: No blockname exist with $blockname for set_result_file");
+    }
+}
 
 
 #################
@@ -636,7 +804,7 @@ sub set_default_r_options {
 
 =head1 (*) FILE METHODS:
 
-=head2 ---------------
+ Internal methods to create files in the cmddir.
 
 =head2 create_rfile
 
@@ -658,7 +826,7 @@ sub set_default_r_options {
 
 sub create_rfile {
     my $self = shift;
-    my $basename = shift || "RiPerlcmd_";
+    my $basename = shift || "RiPerlcmd";
 
     my $cmddir = $self->get_cmddir();
     if (length($cmddir) == 0) {
@@ -677,7 +845,10 @@ sub create_rfile {
 
 =head1 (*) COMMAND METHODS:
 
-=head2 ------------------
+ Methods to add,get or run command from the command files associated with
+ the blocks.
+
+ If no blockname is used, it will assume that 'default' block is being used.
 
 =head2 add_command
 
@@ -917,9 +1088,9 @@ sub _system_r {
 
 =head1 (*) BLOCK METHODS:
 
-=head2 ------------------
-
- They are a collection of methods to use R::YapRI::Block
+ They are a collection of methods to enhance the usage of R::YapRI::Block
+ through rbase object, like create new blocks, create blocks using another
+ blocks as a base or combine blocks.
 
 =head2 combine_blocks
 
@@ -1022,6 +1193,14 @@ sub create_block {
 #################################
 ## R. OBJECT/FUNCTIONS METHODS ##
 #################################
+
+=head1 (*) R OBJECTS METHODS:
+
+ They are a collection of methods to interact with the R objects creating 
+ and running blocks to get some data from R, like class for an object
+ or arguments for a function.
+
+ They will be moved to R::YapRI::Interpreter::R soon.
 
 =head2 r_object_class
 
@@ -1230,6 +1409,11 @@ sub r_function_args {
 ################
 ## DESTRUCTOR ##
 ################
+
+=head1 (*) DESTRUCTOR:
+
+ Destructor will delete the cmddir and the files contained by it if switch
+ keepfiles is disabled.
 
 =head2 DESTROY
 
