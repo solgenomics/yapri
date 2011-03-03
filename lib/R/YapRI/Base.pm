@@ -385,7 +385,9 @@ sub delete_cmddir {
     my $self = shift;
 
     my $cmddir = $self->get_cmddir();
-    remove_tree($cmddir);
+    if (defined $cmddir && length($cmddir) > 0) {
+	remove_tree($cmddir);
+    }
     
     delete($self->{cmddir});
 

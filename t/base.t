@@ -140,7 +140,7 @@ throws_ok { R::YapRI::Base->new({ debug => 'NO'}) } qr/ARGUMENT ERROR: NO/,
 ## Testing accessors for cmddir, TEST 10 to 14
 
 my $currdir = getcwd;
-my $testdir = $currdir . '/test';
+my $testdir = File::Spec->catdir($currdir, 'test');
 mkdir($testdir);
 
 $rbase0->set_cmddir($testdir);
@@ -209,7 +209,7 @@ $rbase0->set_cmddir($cmddir0);
 ## Now it will create a file
 ## testing blocks accessors, TEST 20 to 23
 
-my $testfile0 = $rbase0->get_cmddir() . '/testfile_for_ribase0.txt';
+my $testfile0 = File::Spec->catfile($cmddir0, 'testfile_for_ribase0.txt');
 
 ## Create the file
 open my $testfh0, '>', $testfile0;
@@ -238,7 +238,7 @@ throws_ok { $rbase0->set_blocks({ 'TEST' => 'noblock' }) } qr/ERROR: noblock/,
 
 ## Testing add_block function, TEST 24 to 30
 
-my $testfile1 = $rbase0->get_cmddir() . '/testfile_for_ribase1.txt';
+my $testfile1 = File::Spec->catfile($cmddir0, 'testfile_for_ribase1.txt');
 open my $testfh1, '>', $testfile1;
 close($testfh1);
 
@@ -414,7 +414,7 @@ foreach my $ag_cmd (@ag_commands) {
 
 ## 1) Create a test file
 
-my $testfile2 = $rbase1->get_cmddir() . '/testfile_for_ribase2.txt';
+my $testfile2 = File::Spec->catfile($cmddir1, 'testfile_for_ribase2.txt');
 open my $testfh2, '+>', $testfile2;
 close($testfh2);
 
@@ -452,7 +452,8 @@ my $rbase2 = R::YapRI::Base->new();
 
 ## Add the commands to enable a graph device and check that it exists
 
-my $grfile1 = $rbase2->get_cmddir() . "/TestMyGraph.bmp";
+my $cmddir2 = $rbase2->get_cmddir();
+my $grfile1 = File::Spec->catfile($cmddir2, "TestMyGraph.bmp");
 $rbase2->add_command('bmp(filename="' . $grfile1 . '", width=600, height=800)');
 $rbase2->add_command('dev.list()');
 $rbase2->add_command('plot(c(1, 5, 10), type = "l")');
@@ -605,7 +606,7 @@ my %graph_files = ();
 my $cmddir3 = $rbase3->get_cmddir();
 
 foreach my $bl (@blocks) {
-     my $filebmp = $cmddir3 . '/graph_for' . $bl;
+     my $filebmp = File::Spec->catfile($cmddir3, 'graph_for' . $bl);
      my $graph_alias = 'graph_' . $bl;
  
      $rbase3->create_block($graph_alias);
