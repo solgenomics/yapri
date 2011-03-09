@@ -22,11 +22,12 @@ use R::YapRI::Interpreter::Perl qw( r_var );
 =head1 NAME
 
 R::YapRI::Block.pm
+
 A module to segment the R commands.
 
 =cut
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 $VERSION = eval $VERSION;
 
 =head1 SYNOPSIS
@@ -75,8 +76,9 @@ $VERSION = eval $VERSION;
 
 =head1 DESCRIPTION
 
-A wrapper to use blocks with R::YapRI::Base
+A wrapper to use blocks with L<R::YapRI::Base>.
 
+Use blocks through rbase object.
 
 =head1 AUTHOR
 
@@ -100,9 +102,11 @@ The following class methods are implemented:
 There are two ways to create a new block:
  
 1) Through rbase object.
+
 my $rblock = $rbase->new_block($blockname);
 
 2) Through R::YapRI::Block class
+
 my $rblock = R::YapRI::Block->new($rbase, $blockname);
 
 Both methods will add the new block to the rbase object.
@@ -581,13 +585,17 @@ sub DESTROY {
 =head1 ACKNOWLEDGEMENTS
 
 Lukas Mueller
+
 Robert Buels
+
 Naama Menda
+
 Jonathan "Duke" Leto
 
 =head1 COPYRIGHT AND LICENCE
 
 Copyright 2011 Boyce Thompson Institute for Plant Research
+
 Copyright 2011 Sol Genomics Network (solgenomics.net)
 
 This program is free software; you can redistribute it and/or 

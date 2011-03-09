@@ -17,11 +17,12 @@ use R::YapRI::Interpreter::Perl qw( r_var );
 =head1 NAME
 
 R::YapRI::Data::Matrix.pm
+
 A module to build and pass a Matrix to a YapRI command file
 
 =cut
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 $VERSION = eval $VERSION;
 
 =head1 SYNOPSIS
@@ -84,18 +85,27 @@ $VERSION = eval $VERSION;
 
 =head1 DESCRIPTION
 
+R::YapRI::Data::Matrix is a L<R::YapRI> to manipulate matrices, send to an
+rbase object (L<R::YapRI::Base>) for further R manipulations.
+
 This module pass perl variables to a R::YapRI::Data::Matrix object that convert
 them in a R command line that it is passed to R::YapRI::Base object as a block.
 
-+-----------+    +----------------------+    +------------+    +---+--------+
-| PerlData1 | => | YaRI::Data::Matrix 1 | => |            | => |   | Input  |
-+-----------+    +----------------------+    | YaRI::Base |    | R |--------+
-| PerlData2 | <= | YaRI::Data::Matrix 2 |<=  |            | <= |   | Output |
-+-----------+    +----------------------+    +------------+    +---+--------+
+ +-----------+    +----------------------+    +------------+    +---+--------+
+ | PerlData1 | => | YaRI::Data::Matrix 1 | => |            | => |   | Input  |
+ +-----------+    +----------------------+    | YaRI::Base |    | R |--------+
+ | PerlData2 | <= | YaRI::Data::Matrix 2 |<=  |            | <= |   | Output |
+ +-----------+    +----------------------+    +------------+    +---+--------+
 
 It lets export data to R frame as: matrix (default), data.frames, vector 
 (by_rows or by_columns) and list (by_rows or by_columns).
 
+Rbase communication is based in two functions:
+
++ send_rbase, to add the matrix to a rbase block.
+
++ read_rbase, to create a R::YapRI::Data::Matrix based in a R matrix contained
+in a rbase block.
 
 =head1 AUTHOR
 
@@ -2150,13 +2160,17 @@ sub read_rbase {
 =head1 ACKNOWLEDGEMENTS
 
 Lukas Mueller
+
 Robert Buels
+
 Naama Menda
+
 Jonathan "Duke" Leto
 
 =head1 COPYRIGHT AND LICENCE
 
 Copyright 2011 Boyce Thompson Institute for Plant Research
+
 Copyright 2011 Sol Genomics Network (solgenomics.net)
 
 This program is free software; you can redistribute it and/or 

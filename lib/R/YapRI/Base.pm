@@ -22,11 +22,12 @@ use R::YapRI::Block;
 =head1 NAME
 
 R::YapRI::Base.pm
+
 A wrapper to interact with R/
 
 =cut
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 $VERSION = eval $VERSION;
 
 =head1 SYNOPSIS
@@ -53,28 +54,37 @@ $VERSION = eval $VERSION;
 =head1 DESCRIPTION
 
 Yet another perl wrapper to interact with R. 
-This module is the central module to use R::YapRI. 
+
+This module is the central module to use L<R::YapRI>. 
 
 If R executable is in the PATH or in RBASE environment variables of your
 system, R commands can be run using this perl module with four methods:
+
 - new(), 
+
 - add_command('my R command'),
+
 - run_command(),
+
 - get_result_file();
 
 The mechanism is simple, it write R commands into a command file and 
 executate it using the R as command line: 
+
 R [options] < infile > outfile
 
 R::YapRI, is a package to manage the infile as command_file and outfile 
 as result_file, with some other tools (blocks, interpreters, switches...).
 
 It can work with a block system to create, combine and run different blocks 
-(every one with a command file and result file associated, see R::YapRI::Block)
+(every one with a command file and result file associated, see 
+L<R::YapRI::Block>)
 
 It uses two switches to trace the R commands that you are running:
+
 - disable_keepfiles/enable_keepfiles, to do not delete the command files and
 the result files after the executation of the code.
+
 - disable_debug/enable_debug, to print as STDERR the R commands from the 
 command file before executate them.
 
@@ -103,9 +113,12 @@ different ways:
 1) With default arguments:
 
 - It will create cmddir in the temp folder: RiPerldir_XXXXXXXX
+
 - It will create the 'default' block with the command file 
 RiPerl_cmd_XXXXXXXX into the cmddir.
+
 - It will run R with --vanilla option.
+
 - 'keepfiles' and 'debug' switches will be disabled.
 
 Example:  my $rbase = R::YapRI::Base->new();
@@ -113,7 +126,9 @@ Example:  my $rbase = R::YapRI::Base->new();
 2) With user arguments:
 
 Any of the following arguments can be used: 
+
 cmddir, r_options, debug and keepfiles
+
 These arguments will overwrite default arguments except if use_defaults =>
 0 is used. In this case no initial 'default block' will be created, and
 if no 'cmddir' is used, it will not be created (see empty object below)
@@ -121,7 +136,9 @@ if no 'cmddir' is used, it will not be created (see empty object below)
 Example: my $rbase = R::YapRI::Base->new({ cmddir => 'mydir' });
 
 3) With use_default => 0, an empty object will be created without
+
 cmddir, blocks or r_options. 
+
 debug and keepfile switches will be disabled.
 
 Example: my $rbase = R::YapRI::Base->new({ use_defaults => 0 });
@@ -1453,13 +1470,17 @@ sub DESTROY {
 =head1 ACKNOWLEDGEMENTS
 
 Lukas Mueller
+
 Robert Buels
+
 Naama Menda
+
 Jonathan "Duke" Leto
 
 =head1 COPYRIGHT AND LICENCE
 
 Copyright 2011 Boyce Thompson Institute for Plant Research
+
 Copyright 2011 Sol Genomics Network (solgenomics.net)
 
 This program is free software; you can redistribute it and/or 
