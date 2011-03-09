@@ -13,7 +13,7 @@ Just the doc. for R::YapRI modules.
 
 =cut
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 $VERSION = eval $VERSION;
 
 =head1 SYNOPSIS
@@ -74,8 +74,10 @@ it can use perl hashref. instead strings to add_commands.
  $rbase->add_command({ mean => [2,3,5,7,11,13,17,19,23,29]});
 
 It uses two switches to trace the R commands that you are running:
+
 - disable_keepfiles/enable_keepfiles, to do not delete the command files and
 the result files after the executation of the code.
+
 - disable_debug/enable_debug, to print as STDERR the R commands from the 
 command file before executate them.
 
@@ -83,9 +85,17 @@ command file before executate them.
 
 Aureliano Bombarely <ab782@cornell.edu>
 
+=head1 ACKNOWLEDGEMENTS
+
+Lukas Mueller
+Robert Buels
+Naama Menda
+Jonathan "Duke" Leto
+
 =head1 COPYRIGHT AND LICENCE
 
-Copyright 2009 Boyce Thompson Institute for Plant Research
+Copyright 2011 Boyce Thompson Institute for Plant Research
+Copyright 2011 Sol Genomics Network (solgenomics.net)
 
 This program is free software; you can redistribute it and/or 
 modify it under the same terms as Perl itself.

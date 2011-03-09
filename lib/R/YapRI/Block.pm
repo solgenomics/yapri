@@ -26,7 +26,7 @@ A module to segment the R commands.
 
 =cut
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 $VERSION = eval $VERSION;
 
 =head1 SYNOPSIS
@@ -578,7 +578,22 @@ sub DESTROY {
 }
 
 
+=head1 ACKNOWLEDGEMENTS
 
+Lukas Mueller
+Robert Buels
+Naama Menda
+Jonathan "Duke" Leto
+
+=head1 COPYRIGHT AND LICENCE
+
+Copyright 2011 Boyce Thompson Institute for Plant Research
+Copyright 2011 Sol Genomics Network (solgenomics.net)
+
+This program is free software; you can redistribute it and/or 
+modify it under the same terms as Perl itself.
+
+=cut
 
 ####
 1; #
