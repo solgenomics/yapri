@@ -10,7 +10,7 @@ my $build = Module::Build->new(
     create_makefile_pl => 'passthrough',
 
     # current version of our core libraries distribution
-    dist_version => '0.02',
+    dist_version => '0.04',
 
     recursive_test_files => 1,
 
@@ -25,6 +25,8 @@ my $build = Module::Build->new(
         'Test::Exception'    => 0,
 	'Test::Warn'         => 0,
 	'Image::Size'        => 0,
+	'String::Random'     => 0,
+	'autodie'            => 0,
     },
 );
 
