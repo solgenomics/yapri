@@ -1,3 +1,8 @@
+0.06	2011-03-11
+
+	Changed the perl version requested in Build.PL to 5.8.0
+	Added the repo link.
+
 0.05	2011-03-09
 
 	More work over the pods.
