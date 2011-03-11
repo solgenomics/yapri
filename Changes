@@ -1,0 +1,24 @@
+0.05	2011-03-09
+
+	More work over the pods.
+
+0.04	2011-03-09
+
+	Added autodie and String::Random to the dependencies.
+
+0.03	2011-03-03
+
+	Changed the pod for all the R::YapRI modules
+
+0.02	2011-03-03
+
+	Added R::YapRI as general documentation.
+
+0.01	2011-03-02
+
+	First CPAN upload.
+	R::YapRI::Base
+	R::YapRI::Block
+	R::YapRI::Interpreter::Perl
+	R::YapRI::Data::Matrix
+	R::YapRI::Graph::Simple

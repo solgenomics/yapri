@@ -7,17 +7,22 @@ my $build = Module::Build->new(
     dist_author        => 'Aureliano Bombarely',
     dist_abstract      => 'Yet another perl R interface',
     license            => 'perl',
-    create_makefile_pl => 'passthrough',
 
     # current version of our core libraries distribution
-    dist_version => '0.05',
+    dist_version => '0.06',
 
     recursive_test_files => 1,
 
     # and now the list of perl module dependencies
 
     requires => {
-        'perl'               => '5.10.0',
+        'perl'               => '5.8.0',
+    },
+    
+    meta_merge => {
+	resources => {
+	    repository => 'https://github.com/solgenomics/yapri',
+	},
     },
 
     build_requires => {
