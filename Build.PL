@@ -9,7 +9,7 @@ my $build = Module::Build->new(
     license            => 'perl',
 
     # current version of our core libraries distribution
-    dist_version => '0.06',
+    dist_version => '0.07',
 
     recursive_test_files => 1,
 
@@ -32,6 +32,7 @@ my $build = Module::Build->new(
 	'Image::Size'        => 0,
 	'String::Random'     => 0,
 	'autodie'            => 0,
+	'File::Path'         => 2.0,
     },
 );
 
