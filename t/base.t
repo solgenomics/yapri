@@ -479,7 +479,7 @@ my $get_result_file2 = $rbase2->get_blocks('default')->get_result_file();
 my $filecontent_check = 0;
 open my $check_fh1, '<', $get_result_file2;
 while(<$check_fh1>) {
-    if ($_ =~ m/quartz|bmp|null device|\s+1|\s+2/) {
+    if ($_ =~ m/(quartz|tiff|null device|\s+1|\s+2)/) {
 	$filecontent_check++; 
      }
 }
