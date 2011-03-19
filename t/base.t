@@ -192,7 +192,8 @@ is($basename =~ m/TEST_/, 1,
     "testing create_rfile, checking filename")
     or diag("Looks like this has failed");
 
-is($dirname =~ m/$cmddir0/, 1, 
+
+is($dirname =~ m/RiPerldir_/, 1, 
     "testing create_rfile, checking dirname")
     or diag("Looks like this has failed");
 
@@ -453,8 +454,8 @@ my $rbase2 = R::YapRI::Base->new();
 ## Add the commands to enable a graph device and check that it exists
 
 my $cmddir2 = $rbase2->get_cmddir();
-my $grfile1 = File::Spec->catfile($cmddir2, "TestMyGraph.bmp");
-$rbase2->add_command('bmp(filename="' . $grfile1 . '", width=600, height=800)');
+my $grfile1 = File::Spec->catfile($cmddir2, "TestMyGraph.tiff");
+$rbase2->add_command('tiff(filename="' . $grfile1 . '", width=600, height=800)');
 $rbase2->add_command('dev.list()');
 $rbase2->add_command('plot(c(1, 5, 10), type = "l")');
 $rbase2->add_command('dev.off()');
@@ -470,7 +471,7 @@ my $get_result_file2 = $rbase2->get_blocks('default')->get_result_file();
 ## So, it will check different things, TEST 57 to 63
 ## 1) Does the output (result file) have the right data ?
 ##    It should contains: 
-##    bmp            ## For bmp enable
+##    bmp            ## For bmp enable (MacOS systems uses quartz)
 ##      2
 ##    null device    ## For bmp disable
 ##              1
@@ -478,7 +479,7 @@ my $get_result_file2 = $rbase2->get_blocks('default')->get_result_file();
 my $filecontent_check = 0;
 open my $check_fh1, '<', $get_result_file2;
 while(<$check_fh1>) {
-    if ($_ =~ m/bmp|null device|\s+1|\s+2/) {
+    if ($_ =~ m/quartz|bmp|null device|\s+1|\s+2/) {
 	$filecontent_check++; 
      }
 }
@@ -606,11 +607,11 @@ my %graph_files = ();
 my $cmddir3 = $rbase3->get_cmddir();
 
 foreach my $bl (@blocks) {
-     my $filebmp = File::Spec->catfile($cmddir3, 'graph_for' . $bl);
+     my $filetiff = File::Spec->catfile($cmddir3, 'graph_for' . $bl);
      my $graph_alias = 'graph_' . $bl;
  
      $rbase3->create_block($graph_alias);
-     $rbase3->add_command('bmp(file="' . $filebmp . '")', $graph_alias);
+     $rbase3->add_command('tiff(file="' . $filetiff . '")', $graph_alias);
      $rbase3->add_command('plot(x, y)', $graph_alias);
      $rbase3->add_command('dev.off()', $graph_alias);
    
@@ -626,7 +627,7 @@ foreach my $bl (@blocks) {
 
      ## Check different images, with the default size (480x480)
 
-     my ($bimg_x, $bimg_y) = Image::Size::imgsize($filebmp);
+     my ($bimg_x, $bimg_y) = Image::Size::imgsize($filetiff);
      
      is($bimg_x, 480, 
         "testing combine_blocks, checking image size (width) for $combblock")

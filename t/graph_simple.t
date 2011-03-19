@@ -132,7 +132,7 @@ push @rih_objs, $rbase0;
 
 my $rdata0 = { x => R::YapRI::Data::Matrix->new( { name => 'fruitexp1' } ) };
 
-my $device0 = { bmp => { width => 600, height => 600, units => 'px' } };
+my $device0 = { tiff => { width => 600, height => 600, units => 'px' } };
 my $grparams0 = { par => { cex => 1, lab => [5, 5, 7], xpd => 'FALSE' } };
 my $sgraph0 = { plot => { x => 'fruitexp1', main => "title" } };
 my $gritems0 = [
@@ -145,7 +145,7 @@ my $gritems0 = [
 
 my @acsors = (
     [ 'rbase'     , $rbase0     ], 
-    [ 'grfile'    , 'graph.bmp' ],
+    [ 'grfile'    , 'graph.tiff' ],
     [ 'rdata'     , $rdata0     ],
     [ 'device'    , $device0    ],
     [ 'grparams'  , $grparams0  ],
@@ -186,7 +186,7 @@ throws_ok { $rgraph0->set_device('fake')} qr/ERROR: Device href./,
 throws_ok { $rgraph0->set_device({ fake => {} })} qr/ERROR: fake isnt/, 
     "TESTING DIE ERROR when key.arg supplied to set_device isnt permited";
 
-throws_ok { $rgraph0->set_device({ bmp => 'fake'})} qr/ERROR: arg. href./, 
+throws_ok { $rgraph0->set_device({ tiff => 'fake'})} qr/ERROR: arg. href./, 
     "TESTING DIE ERROR when value supplied to set_device isnt a HASHREF";
 
 throws_ok { $rgraph0->set_grparams('fake')} qr/ERROR: fake for/, 
@@ -364,7 +364,7 @@ my %blocks2 = %{$rbase0->get_blocks()};
 
 my %bg_checks = (
     'fruitexp1 <- data.frame'   => 1,
-    'bmp'                      => 1, 
+    'tiff'                      => 1, 
     'par'                      => 1,
     'plot'                     => 1,
     'points'                   => 1,
@@ -398,7 +398,7 @@ throws_ok { $rgraph0->run_graph('fake') } qr/ERROR: Block=fake/,
 ## Set the file into the temp dir to remove it
 
 my $tempdir = $rbase0->get_cmddir();
-my $tempgraph = $tempdir . '/GraphRTest.bmp';
+my $tempgraph = $tempdir . '/GraphRTest.tiff';
 
 $rgraph0->set_grfile($tempgraph);
 $rgraph0->build_graph("TEMPGRAPH0");
@@ -439,8 +439,8 @@ my $mtx1 = R::YapRI::Data::Matrix->new({ name     => "PetalCount1",
 my %graphs = (
     1 => { rbase => $rbase1,
 	   rdata => { x => $mtx1 },
-	   grfile => $tempdir . '/GraphR_hist.bmp',
-	   device => { bmp => { width => 600, height => 400 } },
+	   grfile => $tempdir . '/GraphR_hist.tiff',
+	   device => { tiff => { width => 600, height => 400 } },
 	   sgraph => { hist => { freq => 'TRUE' } },
     },
     2 => { rbase => $rbase1,
