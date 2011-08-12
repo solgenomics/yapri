@@ -154,15 +154,29 @@ Aureliano Bombarely <ab782@cornell.edu>
 
 =head1 ACKNOWLEDGEMENTS
 
+=over 4
+
+=item *
+
 Lukas Mueller
+
+=item *
 
 Robert Buels
 
+=item *
+
 Naama Menda
+
+=item *
 
 Jonathan "Duke" Leto
 
+=item *
+
 Olivier "dolmen" MenguE<eacute>
+
+=back
 
 =head1 PUBLIC REPOSITORY
 
