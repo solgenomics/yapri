@@ -32,7 +32,7 @@ $VERSION = eval $VERSION;
 
   ## Constructors:
 
-  my $rmatrix = R::YapRI::Data::Matrix->new('matrix1');
+  my $rmatrix = R::YapRI::Data::Matrix->new({ name => 'matrix1' });
   
   ## Accessors:
 
@@ -144,6 +144,7 @@ The following class methods are implemented:
         
   Side_Effects: Die if the argument used is not a hash or its values arent 
                 right.
+                If no coln and rown are used, it will set to 0 by default.
 
   Example: my $rmatrix = R::YapRI::Data::Matrix->new(
                                      { 
