@@ -22,7 +22,7 @@ A module to build and pass a Matrix to a YapRI command file
 
 =cut
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 $VERSION = eval $VERSION;
 
 =head1 SYNOPSIS
@@ -215,10 +215,10 @@ sub new {
     my $name = $args{name} || '';
     $self->set_name($name);
 
-    my $coln = $args{coln} || '';
+    my $coln = $args{coln} || 0;
     $self->set_coln($coln);
 
-    my $rown = $args{rown} || '';
+    my $rown = $args{rown} || 0;
     $self->set_rown($rown);
 
     my $colnames = $args{colnames} || [];
