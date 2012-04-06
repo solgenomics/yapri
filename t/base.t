@@ -506,14 +506,14 @@ is($img_y, 800,
 ## Check die for run_command
 
 throws_ok  { $rbase1->run_commands('fake') } qr/ERROR: Block=fake/, 
-    'TESTING DIE ERROR when blockname used for run_command doesnt exist';
+    'TESTING DIE ERROR when blockname used for run_commands doesnt exist';
 
 throws_ok  { $rbase1->run_commands('FBLOCK1') } qr/ERROR: cmdfile/, 
-     'TESTING DIE ERROR when block used for run_command doesnt have set file';
+     'TESTING DIE ERROR when block used for run_commands doesnt have set file';
 
 $rbase1->set_cmddir('');
 throws_ok  { $rbase1->run_commands() } qr/ERROR: cmddir/, 
-     'TESTING DIE ERROR when cmddir for run_command isnt set';
+     'TESTING DIE ERROR when cmddir for run_commands isnt set';
 $rbase1->set_cmddir($cmddir1);
 
 
@@ -522,7 +522,7 @@ $rbase1->set_cmddir($cmddir1);
 $rbase2->set_r_options('--file=');
 
 throws_ok  { $rbase2->run_commands() } qr/SYSTEM FAILS running R/, 
-    'TESTING DIE ERROR when system fail running run_command function';
+    'TESTING DIE ERROR when system fail running run_commands function';
 
 $rbase2->set_r_options('--slave --vanilla');
 

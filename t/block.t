@@ -197,7 +197,7 @@ throws_ok { $rblock0->add_command([]) } qr/ERROR: ARRAY/,
     'TESTING DIE ERROR when arg. supplied to add_command() isnt scalar or href';
 
 
-## Test run_command and get results, TEST 22 to 24
+## Test run_commands and get results, TEST 22 to 24
 
 $rblock0->add_command({ mean => { 'x' => '' }});
 $rblock0->run_block();

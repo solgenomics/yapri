@@ -29,7 +29,7 @@ __END__
   $rbase->add_command('plot(c(1, 5, 10), type = "l")');
   $rbase->add_command('dev.off()');
  
-  $rbase->run_command();
+  $rbase->run_commands();
   
   my $result_file = $rbase->get_result_file();
   
