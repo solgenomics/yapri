@@ -42,7 +42,7 @@ $VERSION = eval $VERSION;
   $rbase->add_command('plot(c(1, 5, 10), type = "l")');
   $rbase->add_command('dev.off()');
  
-  $rbase->run_command();
+  $rbase->run_commands();
   
   my $result_file = $rbase->get_result_file();
 
@@ -64,7 +64,7 @@ system, R commands can be run using this perl module with four methods:
 
 - add_command('my R command'),
 
-- run_command(),
+- run_commands(),
 
 - get_result_file();
 
@@ -154,7 +154,7 @@ Example: my $rbase = R::YapRI::Base->new({ use_defaults => 0 });
 
   Args: A hash reference with the following parameters:
         cmddir       => A string, a dir to store the command files
-        r_options    => A string with the R options passed to run_command
+        r_options    => A string with the R options passed to run_commands
         use_defaults => 0|1 to disable/enable use_default.
         debug        => 0|1 to disable/enable debug for run commands.
         keepfiles    => 0|1 to disable/enable keepfiles after DESTROY rbase
@@ -602,7 +602,7 @@ sub delete_block {
   Usage: my $r_options = $rih->get_r_options(); 
 
   Desc: Get the r_opts_pass variable (options used with the R command)
-        when run_command function is used
+        when run_commands function is used
 
   Ret: $r_opts_pass, a string
 
@@ -627,7 +627,7 @@ sub get_r_options {
   Usage: $rbase->set_r_options($r_opts_pass); 
 
   Desc: Set the r_opts_pass variable (options used with the R command)
-        when run_command function is used. Use R -help for more info.
+        when run_commands function is used. Use R -help for more info.
         The most common options used:
         --save                Do save workspace at the end of the session
         --no-save             Don't save it

@@ -1131,7 +1131,7 @@ sub build_graph {
 
   Usage: my ($filegraph, $fileresults) = $rgraph->run_graph();
 
-  Desc: A wrapper function to use run_command over a concrete graph block
+  Desc: A wrapper function to use run_commands over a concrete graph block
 
   Ret: $filegraph, the name of the graph file 
        $fileresults, with the result of run all the R commans of this block
