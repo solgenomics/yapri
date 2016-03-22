@@ -20,8 +20,8 @@
 
 =head1 AUTHORS
 
- Aureliano Bombarely Gomez
- (ab782@cornell.edu)
+ Aureliano Bombarely
+ (aurebg@vt.edu)
 
 =cut
 
@@ -467,6 +467,7 @@ my %graphs = (
     );
 
 foreach my $idx (sort {$a <=> $b} keys %graphs) {
+
     my $rgraphx = R::YapRI::Graph::Simple->new($graphs{$idx});
     my $blockx = $rgraphx->build_graph();
     $rgraphx->run_graph($blockx);

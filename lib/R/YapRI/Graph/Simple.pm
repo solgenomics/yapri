@@ -26,7 +26,7 @@ A module to create simple graphs using R through R::YapRI::Base
 
 =cut
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 $VERSION = eval $VERSION;
 
 =head1 SYNOPSIS
@@ -103,7 +103,7 @@ commands.
 
 =head1 AUTHOR
 
-Aureliano Bombarely <ab782@cornell.edu>
+Aureliano Bombarely <aurebg@vt.edu>
 
 
 =head1 CLASS METHODS
@@ -218,9 +218,11 @@ sub new {
     }
     
     ## Finally it will set all the args
+    ## Some arguments depends of others, so it should be sorted
 
-    foreach my $keyarg (keys %args) {
+    foreach my $keyarg (sort {$b cmp $a} keys %args) {
 	my $function = 'set_' . $keyarg;
+
 	$self->$function($args{$keyarg});
     }
     
@@ -445,9 +447,10 @@ sub set_device {
 
     ## Overwrite filename with grFile
 
-    if ($self->get_grfile =~ m/./) {                       ## It isnt empty
+    my $grfile = $self->get_grfile();
+    if ($grfile =~ m/./) {                         ## It isnt empty
 	foreach my $kdev (keys %{$devhref}) {
-	    $devhref->{$kdev}->{filename} = $self->get_grfile();
+	    $devhref->{$kdev}->{filename} = $grfile;
 	}
     }
     
