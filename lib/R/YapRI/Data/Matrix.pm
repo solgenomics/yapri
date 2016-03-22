@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use autodie;
 
-use Carp qw(croak cluck);
+use Carp qw(croak cluck carp);
 use R::YapRI::Base;
 use R::YapRI::Interpreter::Perl qw( r_var );
 
@@ -1470,7 +1470,7 @@ sub change_rows {
 	$rowname1 => $rowname2,
 	);
 
-    foreach my $chname (keys %changed) {	
+    foreach my $chname (sort keys %changed) {	
 	$self->set_rowdata($chname, $row_data{$changed{$chname}});
 	
 	my $old_idx = $row_index{$chname};
