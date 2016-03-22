@@ -91,7 +91,7 @@ For more complex data structures, use L<R::YapRI::Data::Matrix>.
 
 =head1 AUTHOR
 
-Aureliano Bombarely <ab782@cornell.edu>
+Aureliano Bombarely <aurebg@vt.edu>
 
 
 =head1 CLASS METHODS

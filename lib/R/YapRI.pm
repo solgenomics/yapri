@@ -11,7 +11,7 @@ R::YapRI - Yet Another Perl R Inteface
 
 =cut
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 $VERSION = eval $VERSION;
 
 1;
@@ -150,7 +150,7 @@ functionality.
 
 =head1 AUTHOR
 
-Aureliano Bombarely <ab782@cornell.edu>
+Aureliano Bombarely <aurebg@vt.edu>
 
 =head1 ACKNOWLEDGEMENTS
 

@@ -1,3 +1,8 @@
+0.09    2016-03-22
+
+ 	Check the module for the Perl version 5.18
+        Update R::YapRI::Data::Matrix 
+
 0.08	2011-03-21
 
 	Change in the version of File::Path requested. 
