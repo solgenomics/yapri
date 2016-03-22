@@ -22,7 +22,7 @@ A module to build and pass a Matrix to a YapRI command file
 
 =cut
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 $VERSION = eval $VERSION;
 
 =head1 SYNOPSIS
@@ -109,7 +109,7 @@ in a rbase block.
 
 =head1 AUTHOR
 
-Aureliano Bombarely <ab782@cornell.edu>
+Aureliano Bombarely <aurebg@vt.edu>
 
 
 =head1 CLASS METHODS
@@ -1369,7 +1369,7 @@ sub change_columns {
     my $a = 0;
     foreach my $data (@data) {
 	my ($r, $c) = @{$revindex{$a}};
-	foreach my $colnm (keys %col_index) {
+	foreach my $colnm (sort keys %col_index) {
 	    if ($col_index{$colnm} == $c) {
 		push @{$col_data{$colnm}}, $data;
 	    }
@@ -1386,7 +1386,7 @@ sub change_columns {
 	$colname1 => $colname2,
 	);
 
-    foreach my $chname (keys %changed) {	
+    foreach my $chname (sort keys %changed) {	
 	$self->set_coldata($chname, $col_data{$changed{$chname}});
 	
 	my $old_idx = $col_index{$chname};
@@ -1429,7 +1429,7 @@ sub change_rows {
     my @rownames = @{$self->get_rownames()};
     my ($n, $match) = (0, 0);
     foreach my $row (@rownames) {
-	foreach my $selrow (keys %row_index) {
+	foreach my $selrow (sort keys %row_index) {
 	    if ($row eq $selrow) {
 		$row_index{$selrow} = $n;
 		$match++;
@@ -1453,7 +1453,7 @@ sub change_rows {
     my $a = 0;
     foreach my $data (@data) {
 	my ($r, $c) = @{$revindex{$a}};
-	foreach my $rownm (keys %row_index) {
+	foreach my $rownm (sort keys %row_index) {
 	    if ($row_index{$rownm} == $r) {
 		push @{$row_data{$rownm}}, $data;
 	    }
