@@ -525,7 +525,7 @@ sub read_results {
     my $resultfile = $self->get_result_file();
     
     if (defined $resultfile) {
-	open my $rfh, '<', $resultfile;
+	open(my $rfh, '< :encoding(UTF-8)', $resultfile) || die "Can't open resultfile $resultfile";
 	while(<$rfh>) {
 	    chomp($_);
 	    push @results, $_;
