@@ -9,6 +9,7 @@ use Carp qw(croak cluck carp);
 use R::YapRI::Base;
 use R::YapRI::Interpreter::Perl qw( r_var );
 
+use utf8;
 
 ###############
 ### PERLDOC ###

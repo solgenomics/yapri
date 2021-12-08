@@ -13,6 +13,7 @@ use R::YapRI::Interpreter::Perl qw( r_var );
 
 use R::YapRI::Data::Matrix;
 
+use utf8;
 
 ###############
 ### PERLDOC ###

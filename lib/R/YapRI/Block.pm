@@ -13,7 +13,7 @@ use File::Path qw( make_path remove_tree);
 use File::stat;
 
 use R::YapRI::Interpreter::Perl qw( r_var );
-
+use utf8;
 
 ###############
 ### PERLDOC ###

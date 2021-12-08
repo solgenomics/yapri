@@ -15,6 +15,8 @@ use File::stat;
 use R::YapRI::Interpreter::Perl qw( r_var );
 use R::YapRI::Block;
 
+use utf8;
+
 ###############
 ### PERLDOC ###
 ###############
@@ -1043,7 +1045,7 @@ sub run_commands {
 	print STDERR "RUNNING COMMAND:\n$base_cmd\n";
     }
 
-    my $run = system($base_cmd);
+    my $run = system("export LC_ALL=en_US.UTF-8; $base_cmd ");
            
     if ($run == 0) {   ## It means success	
 	$block->set_result_file($resultfile);
