@@ -13,6 +13,7 @@ use R::YapRI::Interpreter::Perl qw( r_var );
 
 use R::YapRI::Data::Matrix;
 
+use utf8;
 
 ###############
 ### PERLDOC ###
@@ -765,7 +766,7 @@ sub is_device_enabled {
     $rbase->add_command('print("end.dev.list")', $cblock);
     $rbase->run_commands($cblock);
     my $rfile = $rbase->get_blocks($cblock)->get_result_file();
-    open my $rfh, '<', $rfile;
+    open(my $rfh, '< :encoding(UTF-8)', $rfile) || die "Can't open rfile $rfile";
 
     my $match_region = 0;
     my $enab = 0;

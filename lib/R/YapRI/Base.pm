@@ -15,6 +15,8 @@ use File::stat;
 use R::YapRI::Interpreter::Perl qw( r_var );
 use R::YapRI::Block;
 
+use utf8;
+
 ###############
 ### PERLDOC ###
 ###############
@@ -907,7 +909,7 @@ sub add_command {
 	my $cmdfile = $block->get_command_file();
 	if (defined $cmdfile && length($cmdfile) > 0 && -f $cmdfile) {
 	    
-	    open my $cmdfh, '>>', $cmdfile;  ## open and append
+	    open(my $cmdfh, '>> :encoding(UTF-8)', $cmdfile) || die "Can't open cmdfile $cmdfile";  ## open and append
 	    print $cmdfh "$command\n";       ## write it with breakline
 	    close($cmdfh);                   ## close it
 	}
@@ -952,7 +954,7 @@ sub get_commands {
 	my $cmdfile = $block->get_command_file();
 	if (defined $cmdfile && length($cmdfile) > 0 && -f $cmdfile) {
 	    
-	    open my $cmdfh, '+<', $cmdfile;  ## open for read
+	    open(my $cmdfh, '+< :encoding(UTF-8)', $cmdfile) || die "Can't open cmdfile $cmdfile";  ## open for read
 	    while(<$cmdfh>) {                ## read it
 		chomp($_);
 		push @commands, $_;
@@ -1043,7 +1045,7 @@ sub run_commands {
 	print STDERR "RUNNING COMMAND:\n$base_cmd\n";
     }
 
-    my $run = system($base_cmd);
+    my $run = system("export LC_ALL=en_US.UTF-8; $base_cmd ");
            
     if ($run == 0) {   ## It means success	
 	$block->set_result_file($resultfile);
@@ -1274,7 +1276,7 @@ sub r_object_class {
     ## Open the result file and parse it
 
     my $resultfile = $self->get_blocks($cblock)->get_result_file();
-    open my $rfh, '<', $resultfile;
+    open(my $rfh, '< :encoding(UTF-8)', $resultfile) || die "Can't open resultfile $resultfile";
 
     my $init = 0;
     while (<$rfh>) {
@@ -1351,7 +1353,7 @@ sub r_function_args {
     $self->run_commands($block1);
     my $rfile1 = $self->get_blocks($block1)->get_result_file();
     
-    open my $rfh1, '<', $rfile1;
+    open(my $rfh1, '< :encoding(UTF-8)', $rfile1) || die "Can't open rfile1 $rfile1";
     while(<$rfh1>) {
 	if ($_ =~ m/<environment:\snamespace:(.+)>/) {
 	    $env = $1;
@@ -1374,7 +1376,7 @@ sub r_function_args {
 	$self->run_commands($block2);
 	my $rfile2 = $self->get_blocks($block2)->get_result_file();
 
-	open my $rfh2, '<', $rfile2;
+	open(my $rfh2, '< :encoding(UTF-8)', $rfile2) || die "Can't open rfile2 $rfile2";
 	
 	## Catch the defaults
 	my $fline = '';
